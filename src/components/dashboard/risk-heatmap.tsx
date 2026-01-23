@@ -8,9 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from '@/components/ui/chart';
 import { mockRiskHeatmapData } from '@/lib/data';
 import {
@@ -24,8 +22,6 @@ import {
 
 export function RiskHeatmap() {
   const data = mockRiskHeatmapData;
-  const processes = [...new Set(data.map((item) => item.process))];
-  const risks = ['Low', 'Medium', 'High'];
 
   const domain = [0, Math.max(...data.map((item) => item.value))];
   const range = [100, 500];
@@ -70,10 +66,7 @@ export function RiskHeatmap() {
             <ZAxis type="number" dataKey="value" domain={domain} range={range} />
             <ChartTooltip
               cursor={false}
-              content={
-                <ChartTooltipContent
-                  hideLabel
-                  content={({ payload }) => {
+              content={({ payload }) => {
                     if (payload && payload.length > 0) {
                       const item = payload[0].payload;
                       return (
@@ -88,8 +81,6 @@ export function RiskHeatmap() {
                     }
                     return null;
                   }}
-                />
-              }
             />
             <Scatter
               name="Anomalies"
