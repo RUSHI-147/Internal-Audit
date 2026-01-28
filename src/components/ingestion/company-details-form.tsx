@@ -21,7 +21,13 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Checkbox } from '../ui/checkbox';
 
 const companyDetailsSchema = z.object({
@@ -39,30 +45,33 @@ const companyDetailsSchema = z.object({
   employeeCount: z.coerce.number().min(1, 'Employee count must be at least 1'),
 });
 
-type CompanyDetailsFormValues = z.infer<typeof companyDetailsSchema>;
+export type CompanyDetailsFormValues = z.infer<typeof companyDetailsSchema>;
 
-export function CompanyDetailsForm() {
+type CompanyDetailsFormProps = {
+  onSubmit: (data: CompanyDetailsFormValues) => void;
+};
+
+export function CompanyDetailsForm({ onSubmit }: CompanyDetailsFormProps) {
   const form = useForm<CompanyDetailsFormValues>({
     resolver: zodResolver(companyDetailsSchema),
     defaultValues: {
+      companyType: 'Private Limited Company',
       state: 'Maharashtra',
       gstRegistered: false,
-      financialYear: '',
+      financialYear: '2023-2024',
       industryType: '',
+      turnoverRange: '',
+      employeeCount: 0,
     },
   });
-
-  function onSubmit(data: CompanyDetailsFormValues) {
-    console.log(data);
-    // Next step would be to use this data to dynamically determine document demand.
-  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Company & Audit Details</CardTitle>
         <CardDescription>
-          Provide company details to tailor the audit scope and document requirements.
+          Provide company details to tailor the audit scope and document
+          requirements.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -75,17 +84,28 @@ export function CompanyDetailsForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a company type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Private Limited Company">Private Limited Company</SelectItem>
-                        <SelectItem value="Public Limited Company">Public Limited Company</SelectItem>
-                        <SelectItem value="One Person Company (OPC)">One Person Company (OPC)</SelectItem>
-                        <SelectItem value="Proprietorship Firm">Proprietorship Firm</SelectItem>
+                        <SelectItem value="Private Limited Company">
+                          Private Limited Company
+                        </SelectItem>
+                        <SelectItem value="Public Limited Company">
+                          Public Limited Company
+                        </SelectItem>
+                        <SelectItem value="One Person Company (OPC)">
+                          One Person Company (OPC)
+                        </SelectItem>
+                        <SelectItem value="Proprietorship Firm">
+                          Proprietorship Firm
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -125,7 +145,10 @@ export function CompanyDetailsForm() {
                   <FormItem>
                     <FormLabel>Industry Type</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Manufacturing, IT Services" {...field} />
+                      <Input
+                        placeholder="e.g., Manufacturing, IT Services"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -137,7 +160,10 @@ export function CompanyDetailsForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Turnover Range</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a turnover range" />
@@ -147,32 +173,43 @@ export function CompanyDetailsForm() {
                         <SelectItem value="< 1 Cr">Less than ₹1 Crore</SelectItem>
                         <SelectItem value="1-10 Cr">₹1 - ₹10 Crore</SelectItem>
                         <SelectItem value="10-50 Cr">₹10 - ₹50 Crore</SelectItem>
-                        <SelectItem value="50-100 Cr">₹50 - ₹100 Crore</SelectItem>
-                        <SelectItem value="> 100 Cr">More than ₹100 Crore</SelectItem>
+                        <SelectItem value="50-100 Cr">
+                          ₹50 - ₹100 Crore
+                        </SelectItem>
+                        <SelectItem value="> 100 Cr">
+                          More than ₹100 Crore
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-               <FormField
+              <FormField
                 control={form.control}
                 name="employeeCount"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Employee Count</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 50" {...field} value={field.value ?? ''} />
+                      <Input
+                        type="number"
+                        placeholder="e.g., 50"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10) || 0)
+                        }
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-               <FormField
+              <FormField
                 control={form.control}
                 name="gstRegistered"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 md:col-span-2">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
@@ -180,18 +217,17 @@ export function CompanyDetailsForm() {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        GST Registered
-                      </FormLabel>
+                      <FormLabel>GST Registered</FormLabel>
                       <FormDescription>
-                        Is the company registered under GST?
+                        Is the company registered under the Goods and Services
+                        Tax Act?
                       </FormDescription>
                     </div>
                   </FormItem>
                 )}
               />
             </div>
-            <Button type="submit">Proceed to Document Ingestion</Button>
+            <Button type="submit">Generate Document Demand List</Button>
           </form>
         </Form>
       </CardContent>

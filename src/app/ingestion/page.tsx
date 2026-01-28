@@ -1,4 +1,10 @@
-import { CompanyDetailsForm } from '@/components/ingestion/company-details-form';
+'use client';
+
+import { useState } from 'react';
+import {
+  CompanyDetailsForm,
+  CompanyDetailsFormValues,
+} from '@/components/ingestion/company-details-form';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,6 +25,7 @@ import { mockIngestions } from '@/lib/data';
 import { Upload, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Ingestion } from '@/lib/types';
+import { DocumentDemandList } from '@/components/ingestion/document-demand-list';
 
 const statusVariant: Record<
   Ingestion['status'],
@@ -30,6 +37,13 @@ const statusVariant: Record<
 };
 
 export default function IngestionPage() {
+  const [companyDetails, setCompanyDetails] =
+    useState<CompanyDetailsFormValues | null>(null);
+
+  const handleFormSubmit = (data: CompanyDetailsFormValues) => {
+    setCompanyDetails(data);
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -37,21 +51,24 @@ export default function IngestionPage() {
           Data Ingestion
         </h1>
         <p className="text-muted-foreground">
-          Start by providing company details to configure the audit, then ingest your data.
+          Start by providing company details to configure the audit, then ingest
+          your data.
         </p>
       </div>
 
-      <CompanyDetailsForm />
+      <CompanyDetailsForm onSubmit={handleFormSubmit} />
+
+      {companyDetails && <DocumentDemandList companyDetails={companyDetails} />}
 
       <Card>
-        <CardHeader className='flex-row items-center justify-between'>
+        <CardHeader className="flex-row items-center justify-between">
           <div>
             <CardTitle>Ingestion History</CardTitle>
             <CardDescription>
               A log of all data ingestion activities.
             </CardDescription>
           </div>
-           <div className="flex gap-2">
+          <div className="flex gap-2">
             <Button variant="outline">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Connector
@@ -77,16 +94,22 @@ export default function IngestionPage() {
             <TableBody>
               {mockIngestions.map((ingestion) => (
                 <TableRow key={ingestion.id}>
-                  <TableCell className="font-medium">{ingestion.source}</TableCell>
+                  <TableCell className="font-medium">
+                    {ingestion.source}
+                  </TableCell>
                   <TableCell>{ingestion.type}</TableCell>
                   <TableCell>{ingestion.date}</TableCell>
-                  <TableCell>{ingestion.recordCount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    {ingestion.recordCount.toLocaleString()}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[ingestion.status]}>
                       {ingestion.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{ingestion.hash}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {ingestion.hash}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
