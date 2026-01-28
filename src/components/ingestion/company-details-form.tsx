@@ -47,6 +47,8 @@ export function CompanyDetailsForm() {
     defaultValues: {
       state: 'Maharashtra',
       gstRegistered: false,
+      financialYear: '',
+      industryType: '',
     },
   });
 
@@ -160,7 +162,7 @@ export function CompanyDetailsForm() {
                   <FormItem>
                     <FormLabel>Employee Count</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 50" {...field} />
+                      <Input type="number" placeholder="e.g., 50" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
