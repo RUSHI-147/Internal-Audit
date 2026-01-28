@@ -1,3 +1,4 @@
+import { CompanyDetailsForm } from '@/components/ingestion/company-details-form';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,33 +32,35 @@ const statusVariant: Record<
 export default function IngestionPage() {
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-headline font-bold tracking-tight">
-            Data Ingestion
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your data sources and view ingestion history.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Connector
-          </Button>
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload File
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-headline font-bold tracking-tight">
+          Data Ingestion
+        </h1>
+        <p className="text-muted-foreground">
+          Start by providing company details to configure the audit, then ingest your data.
+        </p>
       </div>
 
+      <CompanyDetailsForm />
+
       <Card>
-        <CardHeader>
-          <CardTitle>Ingestion History</CardTitle>
-          <CardDescription>
-            A log of all data ingestion activities.
-          </CardDescription>
+        <CardHeader className='flex-row items-center justify-between'>
+          <div>
+            <CardTitle>Ingestion History</CardTitle>
+            <CardDescription>
+              A log of all data ingestion activities.
+            </CardDescription>
+          </div>
+           <div className="flex gap-2">
+            <Button variant="outline">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Connector
+            </Button>
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload File
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
