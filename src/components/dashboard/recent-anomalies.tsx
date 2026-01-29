@@ -1,4 +1,5 @@
-import { mockAnomalies } from '@/lib/data';
+'use client';
+
 import { AnomalyStatus } from '@/lib/types';
 import {
   Card,
@@ -18,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Button } from '../ui/button';
+import { useAudit } from '@/contexts/AuditContext';
 
 const statusVariant: Record<
   AnomalyStatus,
@@ -28,8 +30,9 @@ const statusVariant: Record<
   Dismissed: 'default',
 };
 
-export async function RecentAnomalies() {
-  const anomalies = mockAnomalies.slice(0, 5);
+export function RecentAnomalies() {
+  const { findings, auditStatus } = useAudit();
+  const anomalies = findings.slice(0, 5);
 
   return (
     <Card className="h-full">
@@ -45,38 +48,52 @@ export async function RecentAnomalies() {
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Issue</TableHead>
-              <TableHead>Risk</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {anomalies.map((anomaly) => (
-              <TableRow key={anomaly.id}>
-                <TableCell>
-                  <Link
-                    href={`/review/${anomaly.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {anomaly.type}
-                  </Link>
-                  <div className="text-xs text-muted-foreground">
-                    {anomaly.entity}
-                  </div>
-                </TableCell>
-                <TableCell>{anomaly.riskScore}</TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant[anomaly.status]}>
-                    {anomaly.status}
-                  </Badge>
-                </TableCell>
+        {auditStatus !== 'COMPLETED' ? (
+           <div className="flex h-[200px] items-center justify-center text-center text-muted-foreground">
+            <p>Run an audit to see recent anomalies.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Issue</TableHead>
+                <TableHead>Risk</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {anomalies.length > 0 ? (
+                anomalies.map((anomaly) => (
+                  <TableRow key={anomaly.id}>
+                    <TableCell>
+                      <Link
+                        href={`/review/${anomaly.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {anomaly.type}
+                      </Link>
+                      <div className="text-xs text-muted-foreground">
+                        {anomaly.entity}
+                      </div>
+                    </TableCell>
+                    <TableCell>{anomaly.riskScore}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[anomaly.status]}>
+                        {anomaly.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">
+                    No anomalies found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

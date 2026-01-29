@@ -5,6 +5,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
 import { Toaster } from '@/components/ui/toaster';
+import { AuditProvider } from '@/contexts/AuditContext';
 
 export const metadata: Metadata = {
   title: 'AuditAI: The AI Internal Audit Copilot',
@@ -42,15 +43,17 @@ export default function RootLayout({
       <body
         className={cn('font-body antialiased', 'min-h-screen bg-background')}
       >
-        <SidebarProvider>
-          <div className="flex">
-            <AppSidebar />
-            <main className="flex-1 min-w-0">
-              <AppHeader />
-              <div className="p-4 md:p-8">{children}</div>
-            </main>
-          </div>
-        </SidebarProvider>
+        <AuditProvider>
+          <SidebarProvider>
+            <div className="flex">
+              <AppSidebar />
+              <main className="flex-1 min-w-0">
+                <AppHeader />
+                <div className="p-4 md:p-8">{children}</div>
+              </main>
+            </div>
+          </SidebarProvider>
+        </AuditProvider>
         <Toaster />
       </body>
     </html>

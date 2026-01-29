@@ -1,11 +1,6 @@
 import { AnomalyListClient } from '@/components/review/anomaly-list-client';
-import { mockAnomalies } from '@/lib/data';
 
 export default function ReviewPage() {
-  // In a real app, you might fetch initial data on the server
-  // and pass it to a client component for interactive filtering/sorting.
-  const anomalies = mockAnomalies;
-
   return (
     <div className="space-y-8">
       <div>
@@ -16,7 +11,7 @@ export default function ReviewPage() {
           Triage, investigate, and resolve flagged anomalies.
         </p>
       </div>
-      <AnomalyListClient anomalies={anomalies} />
+      <AnomalyListClient />
     </div>
   );
 }

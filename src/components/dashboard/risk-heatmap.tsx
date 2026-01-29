@@ -13,20 +13,58 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { mockRiskHeatmapData } from '@/lib/data';
-import {
-  Scatter,
-  ScatterChart,
-  XAxis,
-  YAxis,
-  ZAxis,
-} from 'recharts';
+import { useAudit } from '@/contexts/AuditContext';
+import { useMemo } from 'react';
+import { RiskHeatmapData, Anomaly } from '@/lib/types';
+import { Scatter, ScatterChart, XAxis, YAxis, ZAxis } from 'recharts';
 
 const chartConfig = {} satisfies ChartConfig;
 
-export function RiskHeatmap() {
-  const data = mockRiskHeatmapData;
+const generateHeatmapData = (anomalies: Anomaly[]): RiskHeatmapData => {
+  if (!anomalies || anomalies.length === 0) {
+    return [];
+  }
 
-  const domain = [0, Math.max(...data.map((item) => item.value))];
+  const riskLevels = {
+    High: 80,
+    Medium: 60,
+    Low: 0,
+  };
+
+  const getRiskLevel = (score: number) => {
+    if (score > riskLevels.High) return 'High';
+    if (score > riskLevels.Medium) return 'Medium';
+    return 'Low';
+  };
+
+  const processMap: Record<string, string> = {
+    'Duplicate Payment': 'Procure to Pay',
+    'Weekend Posting': 'Record to Report',
+    'Threshold Breach': 'Procure to Pay',
+    'Vendor Concentration': 'Procure to Pay',
+    'Round Number': 'Treasury',
+  };
+
+  const data: { [key: string]: number } = {};
+
+  anomalies.forEach((anomaly) => {
+    const process = processMap[anomaly.type] || 'Other';
+    const risk = getRiskLevel(anomaly.riskScore);
+    const key = `${process}|${risk}`;
+    data[key] = (data[key] || 0) + 1;
+  });
+
+  return Object.entries(data).map(([key, value]) => {
+    const [process, risk] = key.split('|');
+    return { process, risk, value };
+  });
+};
+
+export function RiskHeatmap() {
+  const { findings, auditStatus } = useAudit();
+  const data = useMemo(() => generateHeatmapData(findings), [findings]);
+
+  const domain = [0, Math.max(...data.map((item) => item.value)) || 1];
   const range = [100, 500];
 
   return (
@@ -38,11 +76,16 @@ export function RiskHeatmap() {
         </CardDescription>
       </CardHeader>
       <CardContent className="h-[350px] w-full p-0">
-        <ChartContainer config={chartConfig}>
+        {auditStatus !== 'COMPLETED' ? (
+          <div className="flex h-full items-center justify-center text-center text-muted-foreground">
+            <p>Run an audit to see the risk heatmap.</p>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig}>
             <ScatterChart
               margin={{
                 top: 20,
-                right: 20,
+                right: 40,
                 bottom: 20,
                 left: 20,
               }}
@@ -98,7 +141,8 @@ export function RiskHeatmap() {
                 opacity={0.8}
               />
             </ScatterChart>
-        </ChartContainer>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   );

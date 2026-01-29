@@ -19,16 +19,26 @@ export type Anomaly = {
   };
 };
 
+export type IngestionStatus = 'Completed' | 'Processing' | 'Failed';
+
 export type Ingestion = {
   id: string;
   source: string;
   type: 'API' | 'File' | 'SFTP';
   fileName?: string;
   date: string;
-  status: 'Completed' | 'Processing' | 'Failed';
+  status: IngestionStatus;
   recordCount: number;
   hash: string;
 };
+
+export type UploadedDoc = {
+  id: string;
+  name: string;
+  type: 'File';
+  date: string;
+  status: IngestionStatus;
+}
 
 export type User = {
   id: string;
@@ -49,3 +59,5 @@ export type TrendAnalysisData = {
   Confirmed: number;
   Dismissed: number;
 }[];
+
+export type AuditStatus = 'CREATED' | 'READY' | 'RUNNING' | 'COMPLETED' | 'FAILED';

@@ -1,53 +1,63 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockAnomalies } from '@/lib/data';
+import { useAudit } from '@/contexts/AuditContext';
 import { FileWarning, CheckCircle, ShieldAlert, BarChart } from 'lucide-react';
+import { useMemo } from 'react';
 
-export async function SummaryCards() {
-  // In a real app, this data would be fetched from an API
-  const totalAnomalies = mockAnomalies.length;
-  const pendingReview = mockAnomalies.filter(
-    (a) => a.status === 'Pending Review'
-  ).length;
-  const confirmed = mockAnomalies.filter((a) => a.status === 'Confirmed').length;
-  const reviewRate =
-    totalAnomalies > 0
-      ? ((totalAnomalies - pendingReview) / totalAnomalies) * 100
-      : 0;
-  const avgRiskScore =
-    totalAnomalies > 0
-      ? mockAnomalies.reduce((sum, a) => sum + a.riskScore, 0) / totalAnomalies
-      : 0;
+export function SummaryCards() {
+  const { findings, auditStatus } = useAudit();
 
-  const summaryData = [
-    {
-      title: 'Total Anomalies',
-      value: totalAnomalies.toLocaleString(),
-      icon: ShieldAlert,
-      change: '+5.2% this month',
-      changeType: 'increase',
-    },
-    {
-      title: 'Pending Review',
-      value: pendingReview.toLocaleString(),
-      icon: FileWarning,
-      change: '-10% this month',
-      changeType: 'decrease',
-    },
-    {
-      title: 'Review Rate',
-      value: `${reviewRate.toFixed(1)}%`,
-      icon: CheckCircle,
-      change: '+2.1%',
-      changeType: 'increase',
-    },
-    {
-      title: 'Avg. Risk Score',
-      value: avgRiskScore.toFixed(0),
-      icon: BarChart,
-      change: '+1.5 pts',
-      changeType: 'increase',
-    },
-  ];
+  const summaryData = useMemo(() => {
+    if (auditStatus !== 'COMPLETED') {
+      return [
+        { title: 'Total Anomalies', value: '0', icon: ShieldAlert },
+        { title: 'Pending Review', value: '0', icon: FileWarning },
+        { title: 'Review Rate', value: '0.0%', icon: CheckCircle },
+        { title: 'Avg. Risk Score', value: '0', icon: BarChart },
+      ];
+    }
+
+    const totalAnomalies = findings.length;
+    const pendingReview = findings.filter(
+      (a) => a.status === 'Pending Review'
+    ).length;
+    const reviewRate =
+      totalAnomalies > 0
+        ? ((totalAnomalies - pendingReview) / totalAnomalies) * 100
+        : 0;
+    const avgRiskScore =
+      totalAnomalies > 0
+        ? findings.reduce((sum, a) => sum + a.riskScore, 0) / totalAnomalies
+        : 0;
+
+    return [
+      {
+        title: 'Total Anomalies',
+        value: totalAnomalies.toLocaleString(),
+        icon: ShieldAlert,
+        change: 'from latest audit',
+      },
+      {
+        title: 'Pending Review',
+        value: pendingReview.toLocaleString(),
+        icon: FileWarning,
+        change: 'awaiting auditor action',
+      },
+      {
+        title: 'Review Rate',
+        value: `${reviewRate.toFixed(1)}%`,
+        icon: CheckCircle,
+        change: 'of identified anomalies',
+      },
+      {
+        title: 'Avg. Risk Score',
+        value: avgRiskScore.toFixed(0),
+        icon: BarChart,
+        change: 'across all anomalies',
+      },
+    ];
+  }, [findings, auditStatus]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
