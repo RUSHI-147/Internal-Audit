@@ -74,22 +74,22 @@ export default function IngestionPage() {
 
   const mandatoryDocs = useMemo(() => {
     if (!companyDetails) return [];
-    const docs = documentRequirements[companyDetails.companyType] || [];
+    let docs = documentRequirements[companyDetails.companyType] || [];
+     if (!companyDetails.gstRegistered) {
+      docs = docs.filter(doc => !doc.name.startsWith('GST'));
+    }
     return docs.filter((d) => d.isMandatory);
   }, [companyDetails]);
 
   const allMandatoryDocsUploaded = useMemo(() => {
     if (!companyDetails || mandatoryDocs.length === 0) return false;
+    
+    // For each mandatory document, check if at least one uploaded file matches its keywords.
     return mandatoryDocs.every((mandatoryDoc) =>
-      uploadedDocs.some(
-        (uploadedDoc) =>
-          // This is a simplistic check. A real app might check for specific file name patterns.
-          uploadedDoc.name
-            .toLowerCase()
-            .includes(mandatoryDoc.name.toLowerCase().substring(0, 5)) ||
-          mandatoryDoc.name
-            .toLowerCase()
-            .includes(uploadedDoc.name.toLowerCase().substring(0, 5))
+      uploadedDocs.some((uploadedDoc) => 
+        mandatoryDoc.keywords.some(keyword => 
+          uploadedDoc.name.toLowerCase().includes(keyword.toLowerCase())
+        )
       )
     );
   }, [uploadedDocs, mandatoryDocs, companyDetails]);
