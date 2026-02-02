@@ -7,7 +7,7 @@ export const mockAnomalies: Anomaly[] = [
     description:
       'Potential duplicate payment detected for invoice INV-2023-987 to vendor "Innovate Inc."',
     date: '2023-10-26',
-    status: 'Pending Review',
+    status: 'AI Flagged',
     riskScore: 85,
     entity: 'Innovate Inc.',
     details: {
@@ -25,7 +25,7 @@ export const mockAnomalies: Anomaly[] = [
     type: 'Weekend Posting',
     description: 'Journal entry posted on a Saturday outside of business hours.',
     date: '2023-10-25',
-    status: 'Pending Review',
+    status: 'AI Flagged',
     riskScore: 45,
     entity: 'Internal JE',
     details: {
@@ -43,7 +43,7 @@ export const mockAnomalies: Anomaly[] = [
     description:
       'Payment of $250,000 to "Global Supply Co" exceeds the single payment threshold of $200,000.',
     date: '2023-10-24',
-    status: 'Confirmed',
+    status: 'AI Flagged',
     riskScore: 95,
     entity: 'Global Supply Co',
     details: {
@@ -62,7 +62,7 @@ export const mockAnomalies: Anomaly[] = [
     description:
       'Over 80% of Q4 marketing spend has been allocated to a single vendor "AdVantage LLC".',
     date: '2023-10-22',
-    status: 'Dismissed',
+    status: 'AI Flagged',
     riskScore: 60,
     entity: 'AdVantage LLC',
     details: {
@@ -79,7 +79,7 @@ export const mockAnomalies: Anomaly[] = [
     description:
       'A large, round-number payment of exactly $100,000.00 was made to "Consulting Experts".',
     date: '2023-10-20',
-    status: 'Pending Review',
+    status: 'AI Flagged',
     riskScore: 70,
     entity: 'Consulting Experts',
     details: {

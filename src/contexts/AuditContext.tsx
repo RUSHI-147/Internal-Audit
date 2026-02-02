@@ -1,7 +1,7 @@
 'use client';
 
 import { mockAnomalies } from '@/lib/data';
-import { Anomaly, AuditStatus, UploadedDoc } from '@/lib/types';
+import { Anomaly, AuditStatus, UploadedDoc, AnomalyStatus } from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type AuditContextType = {
@@ -11,6 +11,11 @@ type AuditContextType = {
   startAudit: () => void;
   addUploadedDoc: (doc: UploadedDoc) => void;
   resetAudit: () => void;
+  updateFindingStatus: (
+    findingId: string,
+    status: AnomalyStatus,
+    comment: string
+  ) => void;
 };
 
 const AuditContext = createContext<AuditContextType | undefined>(undefined);
@@ -33,12 +38,26 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
       setAuditStatus('COMPLETED');
     }, 5000); // 5-second delay to simulate audit execution
   };
-  
+
   const resetAudit = () => {
     setAuditStatus('CREATED');
     setUploadedDocs([]);
     setFindings([]);
-  }
+  };
+
+  const updateFindingStatus = (
+    findingId: string,
+    status: AnomalyStatus,
+    comment: string
+  ) => {
+    setFindings((prevFindings) =>
+      prevFindings.map((finding) =>
+        finding.id === findingId
+          ? { ...finding, status, auditorComment: comment }
+          : finding
+      )
+    );
+  };
 
   const value = {
     auditStatus,
@@ -47,6 +66,7 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     startAudit,
     addUploadedDoc,
     resetAudit,
+    updateFindingStatus,
   };
 
   return (

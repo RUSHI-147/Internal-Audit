@@ -23,11 +23,12 @@ import { useAudit } from '@/contexts/AuditContext';
 
 const statusVariant: Record<
   AnomalyStatus,
-  'default' | 'secondary' | 'destructive'
+  'default' | 'secondary' | 'destructive' | 'outline'
 > = {
-  'Pending Review': 'secondary',
+  'AI Flagged': 'secondary',
   Confirmed: 'destructive',
   Dismissed: 'default',
+  'Needs More Info': 'outline',
 };
 
 export function RecentAnomalies() {

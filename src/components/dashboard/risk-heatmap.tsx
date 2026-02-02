@@ -12,7 +12,6 @@ import {
   ChartTooltip,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { mockRiskHeatmapData } from '@/lib/data';
 import { useAudit } from '@/contexts/AuditContext';
 import { useMemo } from 'react';
 import { RiskHeatmapData, Anomaly } from '@/lib/types';
@@ -62,7 +61,13 @@ const generateHeatmapData = (anomalies: Anomaly[]): RiskHeatmapData => {
 
 export function RiskHeatmap() {
   const { findings, auditStatus } = useAudit();
-  const data = useMemo(() => generateHeatmapData(findings), [findings]);
+  const confirmedFindings = useMemo(
+    () => findings.filter((f) => f.status === 'Confirmed'),
+    [findings]
+  );
+  const data = useMemo(() => generateHeatmapData(confirmedFindings), [
+    confirmedFindings,
+  ]);
 
   const domain = [0, Math.max(...data.map((item) => item.value)) || 1];
   const range = [100, 500];
@@ -70,15 +75,20 @@ export function RiskHeatmap() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Risk Heatmap</CardTitle>
+        <CardTitle>Risk Heatmap (Confirmed Findings)</CardTitle>
         <CardDescription>
-          Anomaly concentration by business process and risk level
+          Concentration of confirmed anomalies by business process and risk
+          level.
         </CardDescription>
       </CardHeader>
       <CardContent className="h-[350px] w-full p-0">
         {auditStatus !== 'COMPLETED' ? (
           <div className="flex h-full items-center justify-center text-center text-muted-foreground">
             <p>Run an audit to see the risk heatmap.</p>
+          </div>
+        ) : confirmedFindings.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-center text-muted-foreground">
+            <p>No confirmed anomalies to display on the heatmap yet.</p>
           </div>
         ) : (
           <ChartContainer config={chartConfig}>
@@ -124,7 +134,9 @@ export function RiskHeatmap() {
                       <div className="rounded-lg border bg-background p-2.5 shadow-lg">
                         <div className="font-bold">{item.process}</div>
                         <div className="text-sm">
-                          <span className="font-medium">{item.risk} Risk: </span>
+                          <span className="font-medium">
+                            {item.risk} Risk:{' '}
+                          </span>
                           {item.value} anomalies
                         </div>
                       </div>

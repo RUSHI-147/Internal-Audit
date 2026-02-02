@@ -2,7 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAudit } from '@/contexts/AuditContext';
-import { FileWarning, CheckCircle, ShieldAlert, BarChart } from 'lucide-react';
+import {
+  FileWarning,
+  CheckCircle,
+  ShieldAlert,
+  BarChart,
+  ClipboardX,
+} from 'lucide-react';
 import { useMemo } from 'react';
 
 export function SummaryCards() {
@@ -11,50 +17,51 @@ export function SummaryCards() {
   const summaryData = useMemo(() => {
     if (auditStatus !== 'COMPLETED') {
       return [
-        { title: 'Total Anomalies', value: '0', icon: ShieldAlert },
-        { title: 'Pending Review', value: '0', icon: FileWarning },
-        { title: 'Review Rate', value: '0.0%', icon: CheckCircle },
-        { title: 'Avg. Risk Score', value: '0', icon: BarChart },
+        { title: 'AI Flagged', value: '0', icon: FileWarning },
+        { title: 'Confirmed Findings', value: '0', icon: ShieldAlert },
+        { title: 'Dismissed Findings', value: '0', icon: ClipboardX },
+        { title: 'Avg. Confirmed Risk', value: '0', icon: BarChart },
       ];
     }
 
     const totalAnomalies = findings.length;
-    const pendingReview = findings.filter(
-      (a) => a.status === 'Pending Review'
+    const aiFlagged = findings.filter(
+      (a) => a.status === 'AI Flagged'
     ).length;
-    const reviewRate =
-      totalAnomalies > 0
-        ? ((totalAnomalies - pendingReview) / totalAnomalies) * 100
-        : 0;
+    const confirmed = findings.filter((a) => a.status === 'Confirmed').length;
+    const dismissed = findings.filter((a) => a.status === 'Dismissed').length;
+
+    const confirmedFindings = findings.filter((a) => a.status === 'Confirmed');
     const avgRiskScore =
-      totalAnomalies > 0
-        ? findings.reduce((sum, a) => sum + a.riskScore, 0) / totalAnomalies
+      confirmedFindings.length > 0
+        ? confirmedFindings.reduce((sum, a) => sum + a.riskScore, 0) /
+          confirmedFindings.length
         : 0;
 
     return [
       {
-        title: 'Total Anomalies',
-        value: totalAnomalies.toLocaleString(),
-        icon: ShieldAlert,
-        change: 'from latest audit',
-      },
-      {
-        title: 'Pending Review',
-        value: pendingReview.toLocaleString(),
+        title: 'AI Flagged',
+        value: aiFlagged.toLocaleString(),
         icon: FileWarning,
-        change: 'awaiting auditor action',
+        change: 'Awaiting auditor review',
       },
       {
-        title: 'Review Rate',
-        value: `${reviewRate.toFixed(1)}%`,
-        icon: CheckCircle,
-        change: 'of identified anomalies',
+        title: 'Confirmed Findings',
+        value: confirmed.toLocaleString(),
+        icon: ShieldAlert,
+        change: 'Validated by auditor',
       },
       {
-        title: 'Avg. Risk Score',
+        title: 'Dismissed Findings',
+        value: dismissed.toLocaleString(),
+        icon: ClipboardX,
+        change: 'Marked as false positives',
+      },
+      {
+        title: 'Avg. Confirmed Risk',
         value: avgRiskScore.toFixed(0),
         icon: BarChart,
-        change: 'across all anomalies',
+        change: 'For confirmed anomalies only',
       },
     ];
   }, [findings, auditStatus]);

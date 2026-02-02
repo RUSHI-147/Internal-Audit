@@ -25,21 +25,25 @@ import { useAudit } from '@/contexts/AuditContext';
 
 const statusVariant: Record<
   AnomalyStatus,
-  'default' | 'secondary' | 'destructive'
+  'default' | 'secondary' | 'destructive' | 'outline'
 > = {
-  'Pending Review': 'secondary',
+  'AI Flagged': 'secondary',
   Confirmed: 'destructive',
   Dismissed: 'default',
+  'Needs More Info': 'outline',
 };
+
+const statusFilters: AnomalyStatus[] = [
+  'AI Flagged',
+  'Confirmed',
+  'Dismissed',
+  'Needs More Info',
+];
 
 export function AnomalyListClient() {
   const { findings, auditStatus } = useAudit();
   
-  const [statusFilter, setStatusFilter] = React.useState<AnomalyStatus[]>([
-    'Pending Review',
-    'Confirmed',
-    'Dismissed',
-  ]);
+  const [statusFilter, setStatusFilter] = React.useState<AnomalyStatus[]>(statusFilters);
 
   const toggleStatusFilter = (status: AnomalyStatus) => {
     setStatusFilter((prev) =>
@@ -65,7 +69,7 @@ export function AnomalyListClient() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            {(['Pending Review', 'Confirmed', 'Dismissed'] as AnomalyStatus[]).map(
+            {statusFilters.map(
               (status) => (
                 <DropdownMenuCheckboxItem
                   key={status}

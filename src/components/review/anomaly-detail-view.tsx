@@ -5,8 +5,8 @@ import {
   ExplanationAndEvidencePackOutput,
 } from '@/ai/flows/explainable-ai-engine';
 import { getRiskScore, getExplanation } from '@/app/actions';
-import { Anomaly } from '@/lib/types';
-import React, { useEffect, useState } from 'react';
+import { Anomaly, AnomalyStatus } from '@/lib/types';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -28,15 +28,39 @@ import {
   FileCode,
   Box,
   Notebook,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
+import { useAudit } from '@/contexts/AuditContext';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-export function AnomalyDetailView({ anomaly }: { anomaly: Anomaly }) {
+export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomaly }) {
+  const { findings, updateFindingStatus } = useAudit();
+  const { toast } = useToast();
+
+  // Ensure we have the latest version of the anomaly from the context
+  const anomaly = useMemo(
+    () => findings.find((f) => f.id === initialAnomaly.id) || initialAnomaly,
+    [findings, initialAnomaly]
+  );
+
   const [riskScore, setRiskScore] =
     useState<AiPoweredRiskScoringOutput | null>(null);
   const [explanation, setExplanation] =
     useState<ExplanationAndEvidencePackOutput | null>(null);
   const [isLoadingRisk, setIsLoadingRisk] = useState(false);
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+
+  const [decision, setDecision] = useState<AnomalyStatus | ''>('');
+  const [justification, setJustification] = useState('');
+
+  const hasDecisionBeenMade =
+    anomaly.status === 'Confirmed' ||
+    anomaly.status === 'Dismissed' ||
+    anomaly.status === 'Needs More Info';
 
   useEffect(() => {
     const fetchAiData = async () => {
@@ -68,6 +92,22 @@ export function AnomalyDetailView({ anomaly }: { anomaly: Anomaly }) {
     };
     fetchAiData();
   }, [anomaly]);
+
+  const handleSaveDecision = () => {
+    if (!decision || !justification) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Information',
+        description: 'Please select a decision and provide a justification.',
+      });
+      return;
+    }
+    updateFindingStatus(anomaly.id, decision, justification);
+    toast({
+      title: 'Decision Saved',
+      description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
+    });
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -150,30 +190,75 @@ export function AnomalyDetailView({ anomaly }: { anomaly: Anomaly }) {
                 </div>
               </>
             ) : (
-              <p className="text-muted-foreground">No evidence pack available.</p>
+              <p className="text-muted-foreground">
+                No evidence pack available.
+              </p>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Auditor Workflow</CardTitle>
+            <CardTitle>Auditor Decision</CardTitle>
             <CardDescription>
-              Add your notes and disposition the finding.
+              Review the evidence and make a final determination. A justification
+              is mandatory for compliance.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea placeholder="Add your notes here... (e.g., Confirmed with AP manager, this was a valid prepayment...)" />
-            <div className="flex gap-2">
-              <Button>
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                Confirm Anomaly
-              </Button>
-              <Button variant="secondary">
-                <ClipboardX className="mr-2 h-4 w-4" />
-                Dismiss (False Positive)
-              </Button>
-            </div>
+          <CardContent className="space-y-6">
+            {hasDecisionBeenMade ? (
+              <Alert variant={anomaly.status === 'Confirmed' ? 'destructive' : 'default'}>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Decision Recorded: {anomaly.status}</AlertTitle>
+                <AlertDescription>
+                  <p className="font-semibold mt-2">Auditor Comment:</p>
+                  <p>{anomaly.auditorComment}</p>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <RadioGroup
+                  value={decision}
+                  onValueChange={(val: AnomalyStatus) => setDecision(val)}
+                  className="flex flex-col space-y-2"
+                >
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="Confirmed" id="d-confirmed" />
+                    <Label htmlFor="d-confirmed" className="font-normal">
+                      Confirm Finding
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="Dismissed" id="d-dismissed" />
+                    <Label htmlFor="d-dismissed" className="font-normal">
+                      Dismiss Finding (False Positive)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem
+                      value="Needs More Info"
+                      id="d-more-info"
+                    />
+                    <Label htmlFor="d-more-info" className="font-normal">
+                      Keep Open / Needs More Info
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                <Textarea
+                  placeholder="Auditor Justification (REQUIRED)"
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                />
+                <Button
+                  onClick={handleSaveDecision}
+                  disabled={!decision || !justification}
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Save Decision
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -204,7 +289,7 @@ export function AnomalyDetailView({ anomaly }: { anomaly: Anomaly }) {
               </div>
             ) : (
               <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-muted">
-                 <span className="text-4xl font-bold">?</span>
+                <span className="text-4xl font-bold">?</span>
               </div>
             )}
             {isLoadingRisk ? (
@@ -220,7 +305,9 @@ export function AnomalyDetailView({ anomaly }: { anomaly: Anomaly }) {
                 </p>
               </div>
             ) : (
-                <p className="mt-4 text-sm text-muted-foreground">Could not calculate risk score.</p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Could not calculate risk score.
+              </p>
             )}
           </CardContent>
         </Card>

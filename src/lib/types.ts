@@ -1,4 +1,8 @@
-export type AnomalyStatus = 'Pending Review' | 'Confirmed' | 'Dismissed';
+export type AnomalyStatus =
+  | 'AI Flagged'
+  | 'Confirmed'
+  | 'Dismissed'
+  | 'Needs More Info';
 
 export type Anomaly = {
   id: string;
@@ -8,6 +12,7 @@ export type Anomaly = {
   status: AnomalyStatus;
   riskScore: number;
   entity: string;
+  auditorComment?: string;
   details: {
     transactionId?: string;
     amount?: number;
@@ -38,7 +43,7 @@ export type UploadedDoc = {
   type: 'File';
   date: string;
   status: IngestionStatus;
-}
+};
 
 export type User = {
   id: string;
