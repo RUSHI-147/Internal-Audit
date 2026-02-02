@@ -83,3 +83,39 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .report-page {
+    page-break-after: always;
+  }
+  .report-page:last-child {
+    page-break-after: avoid;
+  }
+  .report-section-header {
+    @apply text-xl font-bold font-headline border-b-2 border-gray-300 pb-2 mb-4 text-gray-800;
+  }
+  .report-section-content {
+    @apply text-sm leading-relaxed text-gray-700;
+  }
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: white !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+  
+  .print-container {
+    @apply p-0 m-0 border-none shadow-none;
+  }
+}

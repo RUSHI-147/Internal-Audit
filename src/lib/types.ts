@@ -65,4 +65,9 @@ export type TrendAnalysisData = {
   Dismissed: number;
 }[];
 
-export type AuditStatus = 'CREATED' | 'READY' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type AuditStatus =
+  | 'CREATED'
+  | 'READY'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED';
