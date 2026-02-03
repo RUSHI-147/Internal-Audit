@@ -61,6 +61,10 @@ export function AnomalyDetailView({
     anomaly.status === 'Dismissed' ||
     anomaly.status === 'Needs More Info';
 
+  const justificationRequired = ['Confirmed', 'Dismissed'].includes(decision as string);
+  const isJustificationMissing = justificationRequired && justification.trim().length === 0;
+  const isSaveDisabled = !decision || isJustificationMissing;
+
   useEffect(() => {
     // Reset state when anomaly changes
     setRiskScore(null);
@@ -104,23 +108,15 @@ export function AnomalyDetailView({
   }, [anomaly, toast]);
 
   const handleSaveDecision = () => {
-    if (!decision || (['Confirmed', 'Dismissed'].includes(decision) && !justification)) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please select a decision and provide a justification for Confirmed or Dismissed findings.',
-      });
-      return;
-    }
-    updateFindingStatus(anomaly.id, decision, justification);
+    if (isSaveDisabled) return; // Safeguard against submission when disabled
+
+    updateFindingStatus(anomaly.id, decision as AnomalyStatus, justification);
     toast({
       title: 'Decision Saved',
       description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
     });
     onDecisionSaved();
   };
-
-  const isSaveDisabled = !decision || (['Confirmed', 'Dismissed'].includes(decision) && !justification);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -281,11 +277,19 @@ export function AnomalyDetailView({
                   </div>
                 </RadioGroup>
 
-                <Textarea
-                  placeholder="Auditor Justification (REQUIRED for Confirmed/Dismissed)"
-                  value={justification}
-                  onChange={(e) => setJustification(e.target.value)}
-                />
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Auditor Justification (REQUIRED for Confirmed/Dismissed)"
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                  />
+                  {isJustificationMissing && (
+                    <p className="text-sm text-destructive">
+                      Justification is required for this decision.
+                    </p>
+                  )}
+                </div>
+
                 <Button
                   onClick={handleSaveDecision}
                   disabled={isSaveDisabled}
