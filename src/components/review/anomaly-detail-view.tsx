@@ -104,11 +104,11 @@ export function AnomalyDetailView({
   }, [anomaly, toast]);
 
   const handleSaveDecision = () => {
-    if (!decision || !justification) {
+    if (!decision || (['Confirmed', 'Dismissed'].includes(decision) && !justification)) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please select a decision and provide a justification.',
+        description: 'Please select a decision and provide a justification for Confirmed or Dismissed findings.',
       });
       return;
     }
@@ -119,6 +119,8 @@ export function AnomalyDetailView({
     });
     onDecisionSaved();
   };
+
+  const isSaveDisabled = !decision || (['Confirmed', 'Dismissed'].includes(decision) && !justification);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -280,13 +282,13 @@ export function AnomalyDetailView({
                 </RadioGroup>
 
                 <Textarea
-                  placeholder="Auditor Justification (REQUIRED)"
+                  placeholder="Auditor Justification (REQUIRED for Confirmed/Dismissed)"
                   value={justification}
                   onChange={(e) => setJustification(e.target.value)}
                 />
                 <Button
                   onClick={handleSaveDecision}
-                  disabled={!decision || !justification}
+                  disabled={isSaveDisabled}
                 >
                   <ClipboardCheck className="mr-2 h-4 w-4" />
                   Save Decision

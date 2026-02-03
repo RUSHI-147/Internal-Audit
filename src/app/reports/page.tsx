@@ -19,7 +19,7 @@ export default function ReportsPage() {
   const [showReport, setShowReport] = useState(false);
 
   const pendingDecisions = findings.filter(
-    (f) => f.status === 'AI Flagged'
+    (f) => f.status === 'AI Flagged' || f.status === 'Needs More Info'
   ).length;
   const isAuditComplete = auditStatus === 'COMPLETED';
   const canGenerateReport = isAuditComplete && pendingDecisions === 0;
@@ -67,7 +67,7 @@ export default function ReportsPage() {
               <AlertTitle>Action Required</AlertTitle>
               <AlertDescription>
                 You have {pendingDecisions} pending finding(s) that need
-                auditor review. Please resolve all 'AI Flagged' items in the
+                auditor review. Please resolve all 'AI Flagged' and 'Needs More Info' items in the
                 Audit Review Queue.
               </AlertDescription>
             </Alert>
