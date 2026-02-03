@@ -1,9 +1,5 @@
 'use client';
 
-import {
-  AiPoweredRiskScoringOutput,
-  ExplanationAndEvidencePackOutput,
-} from '@/ai/flows/explainable-ai-engine';
 import { getRiskScore, getExplanation } from '@/app/actions';
 import { Anomaly, AnomalyStatus } from '@/lib/types';
 import React, { useEffect, useState } from 'react';
@@ -43,16 +39,10 @@ export function AnomalyDetailView({
   anomaly: Anomaly;
   onDecisionSaved: () => void;
 }) {
-  const { updateFindingStatus } = useAudit();
+  const { updateFindingStatus, updateFindingAiData } = useAudit();
   const { toast } = useToast();
 
-  const [riskScore, setRiskScore] =
-    useState<AiPoweredRiskScoringOutput | null>(null);
-  const [explanation, setExplanation] =
-    useState<ExplanationAndEvidencePackOutput | null>(null);
-  const [isLoadingRisk, setIsLoadingRisk] = useState(false);
-  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
   const [justification, setJustification] = useState('');
 
@@ -66,15 +56,16 @@ export function AnomalyDetailView({
   const isSaveDisabled = !decision || isJustificationMissing;
 
   useEffect(() => {
-    // Reset state when anomaly changes
-    setRiskScore(null);
-    setExplanation(null);
     setDecision('');
     setJustification('');
     
+    // If AI data already exists for this anomaly, don't refetch
+    if (anomaly.aiExplanation && anomaly.aiRiskScore) {
+      return;
+    }
+
     const fetchAiData = async () => {
-      setIsLoadingRisk(true);
-      setIsLoadingExplanation(true);
+      setIsLoading(true);
       try {
         const [riskResult, explanationResult] = await Promise.all([
           getRiskScore({
@@ -90,8 +81,11 @@ export function AnomalyDetailView({
             sourceDocuments: anomaly.details.sourceDocuments.join(', '),
           }),
         ]);
-        setRiskScore(riskResult);
-        setExplanation(explanationResult);
+        // Persist the fetched AI data into the global context
+        updateFindingAiData(anomaly.id, {
+          riskScore: riskResult,
+          explanation: explanationResult,
+        });
       } catch (error) {
         console.error('Failed to fetch AI insights:', error);
         toast({
@@ -100,15 +94,15 @@ export function AnomalyDetailView({
           description: 'There was an error fetching data from the AI engine.'
         })
       } finally {
-        setIsLoadingRisk(false);
-        setIsLoadingExplanation(false);
+        setIsLoading(false);
       }
     };
     fetchAiData();
-  }, [anomaly, toast]);
+  }, [anomaly, toast, updateFindingAiData]);
+
 
   const handleSaveDecision = () => {
-    if (isSaveDisabled) return; // Safeguard against submission when disabled
+    if (isSaveDisabled) return;
 
     updateFindingStatus(anomaly.id, decision as AnomalyStatus, justification);
     toast({
@@ -117,6 +111,9 @@ export function AnomalyDetailView({
     });
     onDecisionSaved();
   };
+  
+  const isRiskLoading = isLoading && !anomaly.aiRiskScore;
+  const isExplanationLoading = isLoading && !anomaly.aiExplanation;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -129,14 +126,14 @@ export function AnomalyDetailView({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingExplanation ? (
+            {isExplanationLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-5/6" />
               </div>
-            ) : explanation ? (
-              <p className="text-sm">{explanation.explanation}</p>
+            ) : anomaly.aiExplanation ? (
+              <p className="text-sm">{anomaly.aiExplanation.explanation}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
                 No explanation available.
@@ -153,20 +150,20 @@ export function AnomalyDetailView({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            {isLoadingExplanation ? (
+            {isExplanationLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-8 w-full" />
                 <Skeleton className="h-8 w-full" />
                 <Skeleton className="h-8 w-full" />
               </div>
-            ) : explanation ? (
+            ) : anomaly.aiExplanation ? (
               <>
                 <div className="flex items-center gap-3">
                   <Box className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Supporting Transactions</h4>
                     <p className="text-muted-foreground">
-                      {explanation.evidencePack.supportingTransactions}
+                      {anomaly.aiExplanation.evidencePack.supportingTransactions}
                     </p>
                   </div>
                 </div>
@@ -175,7 +172,7 @@ export function AnomalyDetailView({
                   <div>
                     <h4 className="font-semibold">Source Documents</h4>
                     <p className="text-muted-foreground">
-                      {explanation.evidencePack.sourceDocuments}
+                      {anomaly.aiExplanation.evidencePack.sourceDocuments}
                     </p>
                   </div>
                 </div>
@@ -184,7 +181,7 @@ export function AnomalyDetailView({
                   <div>
                     <h4 className="font-semibold">Transformation Logs</h4>
                     <p className="text-muted-foreground">
-                      {explanation.evidencePack.transformationLogs}
+                      {anomaly.aiExplanation.evidencePack.transformationLogs}
                     </p>
                   </div>
                 </div>
@@ -193,7 +190,7 @@ export function AnomalyDetailView({
                   <div>
                     <h4 className="font-semibold">Immutable Hash</h4>
                     <p className="font-mono text-xs text-muted-foreground">
-                      {explanation.evidencePack.hashSignedBundle}
+                      {anomaly.aiExplanation.evidencePack.hashSignedBundle}
                     </p>
                   </div>
                 </div>
@@ -312,19 +309,19 @@ export function AnomalyDetailView({
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            {isLoadingRisk ? (
+            {isRiskLoading ? (
               <Skeleton className="h-32 w-32 rounded-full mx-auto" />
-            ) : riskScore ? (
+            ) : anomaly.aiRiskScore ? (
               <div
                 className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8"
                 style={{
                   borderColor: `hsl(var(--primary), ${
-                    riskScore.riskScore / 100
+                    anomaly.aiRiskScore.riskScore / 100
                   })`,
                 }}
               >
                 <span className="text-4xl font-bold">
-                  {Math.round(riskScore.riskScore)}
+                  {Math.round(anomaly.aiRiskScore.riskScore)}
                 </span>
               </div>
             ) : (
@@ -332,16 +329,16 @@ export function AnomalyDetailView({
                 <span className="text-4xl font-bold">?</span>
               </div>
             )}
-            {isLoadingRisk ? (
+            {isRiskLoading ? (
               <div className="mt-4 space-y-2">
                 <Skeleton className="h-4 w-24 mx-auto" />
                 <Skeleton className="h-4 w-32 mx-auto" />
               </div>
-            ) : riskScore ? (
+            ) : anomaly.aiRiskScore ? (
               <div className="mt-4">
-                <p className="font-semibold">{riskScore.reasonCodes}</p>
+                <p className="font-semibold">{anomaly.aiRiskScore.reasonCodes}</p>
                 <p className="text-sm text-muted-foreground">
-                  Confidence: {Math.round(riskScore.confidenceScore)}%
+                  Confidence: {Math.round(anomaly.aiRiskScore.confidenceScore)}%
                 </p>
               </div>
             ) : (

@@ -1,7 +1,14 @@
 'use client';
 
 import { mockAnomalies, mockCurrentUser } from '@/lib/data';
-import { Anomaly, AuditStatus, UploadedDoc, AnomalyStatus } from '@/lib/types';
+import {
+  Anomaly,
+  AuditStatus,
+  UploadedDoc,
+  AnomalyStatus,
+  AiPoweredRiskScoringOutput,
+  ExplanationAndEvidencePackOutput,
+} from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type AuditContextType = {
@@ -15,6 +22,13 @@ type AuditContextType = {
     findingId: string,
     status: AnomalyStatus,
     comment: string
+  ) => void;
+  updateFindingAiData: (
+    findingId: string,
+    data: {
+      riskScore: AiPoweredRiskScoringOutput | null;
+      explanation: ExplanationAndEvidencePackOutput | null;
+    }
   ) => void;
 };
 
@@ -65,6 +79,26 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const updateFindingAiData = (
+    findingId: string,
+    data: {
+      riskScore: AiPoweredRiskScoringOutput | null;
+      explanation: ExplanationAndEvidencePackOutput | null;
+    }
+  ) => {
+    setFindings((prevFindings) =>
+      prevFindings.map((finding) =>
+        finding.id === findingId
+          ? {
+              ...finding,
+              aiRiskScore: data.riskScore ?? undefined,
+              aiExplanation: data.explanation ?? undefined,
+            }
+          : finding
+      )
+    );
+  };
+
   const value = {
     auditStatus,
     uploadedDocs,
@@ -73,6 +107,7 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     addUploadedDoc,
     resetAudit,
     updateFindingStatus,
+    updateFindingAiData,
   };
 
   return (

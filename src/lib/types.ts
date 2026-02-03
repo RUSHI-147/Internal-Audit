@@ -4,6 +4,26 @@ export type AnomalyStatus =
   | 'Dismissed'
   | 'Needs More Info';
 
+export type AiPoweredRiskScoringOutput = {
+  riskScore: number;
+  confidenceScore: number;
+  reasonCodes: string;
+  explanation: string;
+};
+
+export type EvidencePack = {
+  supportingTransactions: string;
+  sourceDocuments: string;
+  transformationLogs: string;
+  analystNotes?: string;
+  hashSignedBundle: string;
+};
+
+export type ExplanationAndEvidencePackOutput = {
+  explanation: string;
+  evidencePack: EvidencePack;
+};
+
 export type Anomaly = {
   id: string;
   type: string;
@@ -25,6 +45,8 @@ export type Anomaly = {
     sourceDocuments: string[];
     complianceReference: string;
   };
+  aiRiskScore?: AiPoweredRiskScoringOutput;
+  aiExplanation?: ExplanationAndEvidencePackOutput;
 };
 
 export type IngestionStatus = 'Completed' | 'Processing' | 'Failed';
