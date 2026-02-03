@@ -1,6 +1,6 @@
 'use client';
 
-import { mockAnomalies } from '@/lib/data';
+import { mockAnomalies, mockCurrentUser } from '@/lib/data';
 import { Anomaly, AuditStatus, UploadedDoc, AnomalyStatus } from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
@@ -53,7 +53,13 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     setFindings((prevFindings) =>
       prevFindings.map((finding) =>
         finding.id === findingId
-          ? { ...finding, status, auditorComment: comment }
+          ? {
+              ...finding,
+              status,
+              auditorComment: comment,
+              decidedBy: mockCurrentUser.name,
+              decidedAt: new Date().toISOString(),
+            }
           : finding
       )
     );

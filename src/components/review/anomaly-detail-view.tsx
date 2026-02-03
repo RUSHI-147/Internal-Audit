@@ -6,7 +6,7 @@ import {
 } from '@/ai/flows/explainable-ai-engine';
 import { getRiskScore, getExplanation } from '@/app/actions';
 import { Anomaly, AnomalyStatus } from '@/lib/types';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -24,12 +24,11 @@ import {
   Lightbulb,
   ShieldAlert,
   ClipboardCheck,
-  ClipboardX,
   FileCode,
   Box,
   Notebook,
-  AlertTriangle,
   Info,
+  BookCheck,
 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -37,15 +36,15 @@ import { useAudit } from '@/contexts/AuditContext';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomaly }) {
-  const { findings, updateFindingStatus } = useAudit();
+export function AnomalyDetailView({
+  anomaly,
+  onDecisionSaved,
+}: {
+  anomaly: Anomaly;
+  onDecisionSaved: () => void;
+}) {
+  const { updateFindingStatus } = useAudit();
   const { toast } = useToast();
-
-  // Ensure we have the latest version of the anomaly from the context
-  const anomaly = useMemo(
-    () => findings.find((f) => f.id === initialAnomaly.id) || initialAnomaly,
-    [findings, initialAnomaly]
-  );
 
   const [riskScore, setRiskScore] =
     useState<AiPoweredRiskScoringOutput | null>(null);
@@ -63,6 +62,12 @@ export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomal
     anomaly.status === 'Needs More Info';
 
   useEffect(() => {
+    // Reset state when anomaly changes
+    setRiskScore(null);
+    setExplanation(null);
+    setDecision('');
+    setJustification('');
+    
     const fetchAiData = async () => {
       setIsLoadingRisk(true);
       setIsLoadingExplanation(true);
@@ -85,13 +90,18 @@ export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomal
         setExplanation(explanationResult);
       } catch (error) {
         console.error('Failed to fetch AI insights:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Failed to load AI insights',
+          description: 'There was an error fetching data from the AI engine.'
+        })
       } finally {
         setIsLoadingRisk(false);
         setIsLoadingExplanation(false);
       }
     };
     fetchAiData();
-  }, [anomaly]);
+  }, [anomaly, toast]);
 
   const handleSaveDecision = () => {
     if (!decision || !justification) {
@@ -107,6 +117,7 @@ export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomal
       title: 'Decision Saved',
       description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
     });
+    onDecisionSaved();
   };
 
   return (
@@ -197,6 +208,21 @@ export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomal
           </CardContent>
         </Card>
 
+         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookCheck className="h-5 w-5 text-primary" />
+              Compliance Reference
+            </CardTitle>
+            <CardDescription>
+              Applicable regulation, law, or internal policy reference.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             <p className="text-sm font-medium">{anomaly.details.complianceReference}</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Auditor Decision</CardTitle>
@@ -207,12 +233,20 @@ export function AnomalyDetailView({ anomaly: initialAnomaly }: { anomaly: Anomal
           </CardHeader>
           <CardContent className="space-y-6">
             {hasDecisionBeenMade ? (
-              <Alert variant={anomaly.status === 'Confirmed' ? 'destructive' : 'default'}>
+              <Alert
+                variant={
+                  anomaly.status === 'Confirmed' ? 'destructive' : 'default'
+                }
+              >
                 <Info className="h-4 w-4" />
                 <AlertTitle>Decision Recorded: {anomaly.status}</AlertTitle>
                 <AlertDescription>
-                  <p className="font-semibold mt-2">Auditor Comment:</p>
-                  <p>{anomaly.auditorComment}</p>
+                  <p className="font-semibold mt-4">Auditor Comment:</p>
+                  <p className="italic">"{anomaly.auditorComment}"</p>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    By {anomaly.decidedBy} on{' '}
+                    {anomaly.decidedAt && new Date(anomaly.decidedAt).toLocaleString()}
+                  </p>
                 </AlertDescription>
               </Alert>
             ) : (

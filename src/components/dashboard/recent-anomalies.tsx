@@ -68,7 +68,7 @@ export function RecentAnomalies() {
                   <TableRow key={anomaly.id}>
                     <TableCell>
                       <Link
-                        href={`/review/${anomaly.id}`}
+                        href={`/review?id=${anomaly.id}`}
                         className="font-medium hover:underline"
                       >
                         {anomaly.type}

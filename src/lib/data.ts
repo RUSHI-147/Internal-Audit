@@ -18,6 +18,7 @@ export const mockAnomalies: Anomaly[] = [
       supportingEvidence: ['Payment Record A', 'Payment Record B'],
       transformationLogs: ['log_file_20231026.txt'],
       sourceDocuments: ['INV-2023-987.pdf'],
+      complianceReference: 'Internal Control Policy 7.2: Duplicate Payment Prevention',
     },
   },
   {
@@ -35,6 +36,7 @@ export const mockAnomalies: Anomaly[] = [
       supportingEvidence: ['Journal Entry Log'],
       transformationLogs: ['log_file_20231025.txt'],
       sourceDocuments: ['JE-00123_details.pdf'],
+      complianceReference: 'Company Policy 4.1: Standard Working Hours',
     },
   },
   {
@@ -54,6 +56,7 @@ export const mockAnomalies: Anomaly[] = [
       supportingEvidence: ['Payment Authorization Form', 'Transaction Record'],
       transformationLogs: ['log_file_20231024.txt'],
       sourceDocuments: ['PO-456.pdf'],
+      complianceReference: 'Delegation of Authority Matrix: L2 Approval required',
     },
   },
   {
@@ -71,6 +74,7 @@ export const mockAnomalies: Anomaly[] = [
       supportingEvidence: ['Q4 Spend Analysis Report'],
       transformationLogs: ['log_file_20231022.txt'],
       sourceDocuments: ['Vendor_Spend_Q4.csv'],
+      complianceReference: 'Procurement Policy 3.5: Vendor Diversification',
     },
   },
   {
@@ -90,6 +94,7 @@ export const mockAnomalies: Anomaly[] = [
       supportingEvidence: ['Transaction Record'],
       transformationLogs: ['log_file_20231020.txt'],
       sourceDocuments: ['SOW-CE-101.pdf'],
+      complianceReference: 'Income Tax Act, 1961 - Section 40A(3): Cash Payment Limits',
     },
   },
 ];

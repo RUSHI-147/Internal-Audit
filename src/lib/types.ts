@@ -13,6 +13,8 @@ export type Anomaly = {
   riskScore: number;
   entity: string;
   auditorComment?: string;
+  decidedBy?: string;
+  decidedAt?: string;
   details: {
     transactionId?: string;
     amount?: number;
@@ -21,6 +23,7 @@ export type Anomaly = {
     supportingEvidence: string[];
     transformationLogs: string[];
     sourceDocuments: string[];
+    complianceReference: string;
   };
 };
 
