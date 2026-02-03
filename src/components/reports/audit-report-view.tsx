@@ -38,6 +38,10 @@ export function AuditReportView() {
     : confirmedFindings.some((f) => f.riskScore > 60)
     ? 'Moderate'
     : 'Low';
+    
+  const handleDownload = () => {
+    window.print();
+  };
 
   return (
     <div className="bg-background">
@@ -45,7 +49,7 @@ export function AuditReportView() {
         <h1 className="text-2xl font-bold font-headline">
           Audit Report Preview
         </h1>
-        <Button onClick={() => window.print()}>
+        <Button onClick={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
           Download as PDF
         </Button>
