@@ -346,7 +346,7 @@ export function AnomalyDetailView({
               <div
                 className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8"
                 style={{
-                  borderColor: `hsl(var(--primary), ${
+                  borderColor: `hsl(var(--primary) / ${
                     anomaly.aiRiskScore.riskScore / 100
                   })`,
                 }}
