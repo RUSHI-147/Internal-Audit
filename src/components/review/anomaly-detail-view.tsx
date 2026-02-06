@@ -114,7 +114,23 @@ export function AnomalyDetailView({
   const isSaveDisabled = !decision || isJustificationMissing || isAiLoading;
 
   const handleSaveDecision = () => {
-    if (isSaveDisabled) return; // Guard clause
+    // Re-validate inside handler for robustness
+    if (!decision) {
+      toast({
+        variant: "destructive",
+        title: "Decision Required",
+        description: "Please select a decision before saving.",
+      });
+      return;
+    }
+    if (justificationRequired && justification.trim().length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Justification Required",
+        description: "A justification is mandatory for 'Confirmed' or 'Dismissed' findings.",
+      });
+      return;
+    }
 
     updateFindingStatus(anomaly.id, decision as AnomalyStatus, justification);
     toast({
