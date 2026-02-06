@@ -2,7 +2,7 @@
 
 import { getRiskScore, getExplanation } from '@/app/actions';
 import { Anomaly, AnomalyStatus } from '@/lib/types';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -25,6 +25,7 @@ import {
   Notebook,
   Info,
   BookCheck,
+  Loader,
 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -42,15 +43,13 @@ export function AnomalyDetailView({
   const { findings, updateFindingStatus, updateFindingAiData } = useAudit();
   const { toast } = useToast();
 
-  // Get the most up-to-date anomaly data from the global context to prevent stale state.
   const anomaly = findings.find((f) => f.id === anomalyProp.id) ?? anomalyProp;
 
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
   const [justification, setJustification] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Effect to initialize or reset form state only when a new anomaly is selected.
-  // This prevents the radio button from resetting while typing in the textarea.
   useEffect(() => {
     if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
       setDecision(anomaly.status);
@@ -62,9 +61,7 @@ export function AnomalyDetailView({
   }, [anomaly.id, anomaly.status, anomaly.auditorComment]);
 
 
-  // Effect to fetch AI-generated data if it's missing for the current anomaly.
   useEffect(() => {
-    // If AI data already exists in the global context for this anomaly, don't refetch.
     if (anomaly.aiExplanation && anomaly.aiRiskScore) {
       return;
     }
@@ -86,7 +83,6 @@ export function AnomalyDetailView({
             sourceDocuments: anomaly.details.sourceDocuments.join(', '),
           }),
         ]);
-        // Persist the fetched AI data into the global context to prevent data loss.
         updateFindingAiData(anomaly.id, {
           riskScore: riskResult,
           explanation: explanationResult,
@@ -114,9 +110,9 @@ export function AnomalyDetailView({
   const handleSaveDecision = () => {
     if (!decision) {
       toast({
-        variant: "destructive",
-        title: "Decision Required",
-        description: "Please select a decision before saving.",
+        variant: 'destructive',
+        title: 'Decision Required',
+        description: 'Please select a decision before saving.',
       });
       return;
     }
@@ -126,23 +122,36 @@ export function AnomalyDetailView({
       justification.trim().length === 0
     ) {
       toast({
-        variant: "destructive",
-        title: "Justification Required",
-        description: "A justification is mandatory for 'Confirmed' or 'Dismissed' findings.",
+        variant: 'destructive',
+        title: 'Justification Required',
+        description: 'A justification is mandatory for this decision.',
       });
       return;
     }
 
-    updateFindingStatus(anomaly.id, decision, justification);
-    toast({
-      title: 'Decision Saved',
-      description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
-    });
-    onDecisionSaved();
+    setIsSubmitting(true);
+    try {
+      updateFindingStatus(anomaly.id, decision, justification);
+      toast({
+        title: 'Decision Saved',
+        description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
+      });
+      onDecisionSaved();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const isSaveDisabled = () => {
-    if (isAiLoading || !decision) return true;
+  const isSaveDisabled = useMemo(() => {
+    if (isAiLoading || isSubmitting || !decision) {
+      return true;
+    }
     if (
       (decision === 'Confirmed' || decision === 'Dismissed') &&
       justification.trim().length === 0
@@ -150,7 +159,7 @@ export function AnomalyDetailView({
       return true;
     }
     return false;
-  };
+  }, [isAiLoading, isSubmitting, decision, justification]);
   
   const isRiskLoading = isAiLoading && !anomaly.aiRiskScore;
   const isExplanationLoading = isAiLoading && !anomaly.aiExplanation;
@@ -176,7 +185,7 @@ export function AnomalyDetailView({
               <p className="text-sm">{anomaly.aiExplanation.explanation}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No explanation available. Run audit to generate.
+                AI explanation data is not available. This may indicate a data integrity issue.
               </p>
             )}
           </CardContent>
@@ -329,10 +338,10 @@ export function AnomalyDetailView({
 
                 <Button
                   onClick={handleSaveDecision}
-                  disabled={isSaveDisabled()}
+                  disabled={isSaveDisabled}
                 >
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  Save Decision
+                  {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" /> }
+                  {isSubmitting ? 'Saving...' : 'Save Decision'}
                 </Button>
               </>
             )}
@@ -383,7 +392,7 @@ export function AnomalyDetailView({
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
-                Could not calculate risk score.
+                Risk score data unavailable.
               </p>
             )}
           </CardContent>
