@@ -42,25 +42,32 @@ export function AnomalyDetailView({
   const { updateFindingStatus, updateFindingAiData } = useAudit();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(false);
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
   const [justification, setJustification] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // This effect resets the form ONLY when a new anomaly is selected.
+  // Effect to initialize or reset form state only when a new anomaly is selected.
+  // This prevents the radio button from resetting while typing in the textarea.
   useEffect(() => {
-    setDecision('');
-    setJustification('');
-  }, [anomaly.id]);
+    if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
+      setDecision(anomaly.status);
+      setJustification(anomaly.auditorComment);
+    } else {
+      setDecision('');
+      setJustification('');
+    }
+  }, [anomaly.id, anomaly.status, anomaly.auditorComment]);
 
-  // This effect fetches the AI data.
+
+  // Effect to fetch AI-generated data if it's missing for the current anomaly.
   useEffect(() => {
-    // If AI data already exists for this anomaly, don't refetch
+    // If AI data already exists in the global context for this anomaly, don't refetch.
     if (anomaly.aiExplanation && anomaly.aiRiskScore) {
       return;
     }
 
     const fetchAiData = async () => {
-      setIsLoading(true);
+      setIsAiLoading(true);
       try {
         const [riskResult, explanationResult] = await Promise.all([
           getRiskScore({
@@ -76,7 +83,7 @@ export function AnomalyDetailView({
             sourceDocuments: anomaly.details.sourceDocuments.join(', '),
           }),
         ]);
-        // Persist the fetched AI data into the global context
+        // Persist the fetched AI data into the global context to prevent data loss.
         updateFindingAiData(anomaly.id, {
           riskScore: riskResult,
           explanation: explanationResult,
@@ -89,11 +96,11 @@ export function AnomalyDetailView({
           description: 'There was an error fetching data from the AI engine.'
         })
       } finally {
-        setIsLoading(false);
+        setIsAiLoading(false);
       }
     };
     fetchAiData();
-  }, [anomaly, toast, updateFindingAiData]);
+  }, [anomaly.id, anomaly.aiExplanation, anomaly.aiRiskScore, anomaly.description, anomaly.details, toast, updateFindingAiData]);
 
 
   const hasDecisionBeenMade =
@@ -101,12 +108,13 @@ export function AnomalyDetailView({
     anomaly.status === 'Dismissed' ||
     anomaly.status === 'Needs More Info';
 
+  // Decision-aware validation logic
   const justificationRequired = ['Confirmed', 'Dismissed'].includes(decision as string);
   const isJustificationMissing = justificationRequired && justification.trim().length === 0;
-  const isSaveDisabled = !decision || isJustificationMissing || isLoading;
+  const isSaveDisabled = !decision || isJustificationMissing || isAiLoading;
 
   const handleSaveDecision = () => {
-    if (isSaveDisabled) return;
+    if (isSaveDisabled) return; // Guard clause
 
     updateFindingStatus(anomaly.id, decision as AnomalyStatus, justification);
     toast({
@@ -116,8 +124,8 @@ export function AnomalyDetailView({
     onDecisionSaved();
   };
   
-  const isRiskLoading = isLoading && !anomaly.aiRiskScore;
-  const isExplanationLoading = isLoading && !anomaly.aiExplanation;
+  const isRiskLoading = isAiLoading && !anomaly.aiRiskScore;
+  const isExplanationLoading = isAiLoading && !anomaly.aiExplanation;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -140,7 +148,7 @@ export function AnomalyDetailView({
               <p className="text-sm">{anomaly.aiExplanation.explanation}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No explanation available.
+                No explanation available. Run audit to generate.
               </p>
             )}
           </CardContent>
