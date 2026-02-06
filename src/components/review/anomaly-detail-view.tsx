@@ -46,19 +46,14 @@ export function AnomalyDetailView({
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
   const [justification, setJustification] = useState('');
 
-  const hasDecisionBeenMade =
-    anomaly.status === 'Confirmed' ||
-    anomaly.status === 'Dismissed' ||
-    anomaly.status === 'Needs More Info';
-
-  const justificationRequired = ['Confirmed', 'Dismissed'].includes(decision as string);
-  const isJustificationMissing = justificationRequired && justification.trim().length === 0;
-  const isSaveDisabled = !decision || isJustificationMissing;
-
+  // This effect resets the form ONLY when a new anomaly is selected.
   useEffect(() => {
     setDecision('');
     setJustification('');
-    
+  }, [anomaly.id]);
+
+  // This effect fetches the AI data.
+  useEffect(() => {
     // If AI data already exists for this anomaly, don't refetch
     if (anomaly.aiExplanation && anomaly.aiRiskScore) {
       return;
@@ -100,6 +95,15 @@ export function AnomalyDetailView({
     fetchAiData();
   }, [anomaly, toast, updateFindingAiData]);
 
+
+  const hasDecisionBeenMade =
+    anomaly.status === 'Confirmed' ||
+    anomaly.status === 'Dismissed' ||
+    anomaly.status === 'Needs More Info';
+
+  const justificationRequired = ['Confirmed', 'Dismissed'].includes(decision as string);
+  const isJustificationMissing = justificationRequired && justification.trim().length === 0;
+  const isSaveDisabled = !decision || isJustificationMissing || isLoading;
 
   const handleSaveDecision = () => {
     if (isSaveDisabled) return;
