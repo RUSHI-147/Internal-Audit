@@ -110,14 +110,8 @@ export function AnomalyDetailView({
     anomaly.status === 'Confirmed' ||
     anomaly.status === 'Dismissed' ||
     anomaly.status === 'Needs More Info';
-
-  // Decision-aware validation logic
-  const justificationRequired = ['Confirmed', 'Dismissed'].includes(decision as string);
-  const isSaveDisabled = isAiLoading || !decision || (justificationRequired && justification.trim().length === 0);
-  
+    
   const handleSaveDecision = () => {
-    const isJustificationMissing = justificationRequired && justification.trim().length === 0;
-  
     if (!decision) {
       toast({
         variant: "destructive",
@@ -126,7 +120,11 @@ export function AnomalyDetailView({
       });
       return;
     }
-    if (isJustificationMissing) {
+
+    if (
+      (decision === 'Confirmed' || decision === 'Dismissed') &&
+      justification.trim().length === 0
+    ) {
       toast({
         variant: "destructive",
         title: "Justification Required",
@@ -135,12 +133,23 @@ export function AnomalyDetailView({
       return;
     }
 
-    updateFindingStatus(anomaly.id, decision as AnomalyStatus, justification);
+    updateFindingStatus(anomaly.id, decision, justification);
     toast({
       title: 'Decision Saved',
       description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
     });
     onDecisionSaved();
+  };
+
+  const isSaveDisabled = () => {
+    if (isAiLoading || !decision) return true;
+    if (
+      (decision === 'Confirmed' || decision === 'Dismissed') &&
+      justification.trim().length === 0
+    ) {
+      return true;
+    }
+    return false;
   };
   
   const isRiskLoading = isAiLoading && !anomaly.aiRiskScore;
@@ -311,7 +320,7 @@ export function AnomalyDetailView({
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
                   />
-                  {justificationRequired && justification.trim().length === 0 && (
+                  {(decision === 'Confirmed' || decision === 'Dismissed') && justification.trim().length === 0 && (
                     <p className="text-sm text-destructive">
                       Justification is required for this decision.
                     </p>
@@ -320,7 +329,7 @@ export function AnomalyDetailView({
 
                 <Button
                   onClick={handleSaveDecision}
-                  disabled={isSaveDisabled}
+                  disabled={isSaveDisabled()}
                 >
                   <ClipboardCheck className="mr-2 h-4 w-4" />
                   Save Decision
