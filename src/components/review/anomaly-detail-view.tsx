@@ -33,14 +33,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 export function AnomalyDetailView({
-  anomaly,
+  anomaly: anomalyProp,
   onDecisionSaved,
 }: {
   anomaly: Anomaly;
   onDecisionSaved: () => void;
 }) {
-  const { updateFindingStatus, updateFindingAiData } = useAudit();
+  const { findings, updateFindingStatus, updateFindingAiData } = useAudit();
   const { toast } = useToast();
+
+  // Get the most up-to-date anomaly data from the global context to prevent stale state.
+  const anomaly = findings.find((f) => f.id === anomalyProp.id) ?? anomalyProp;
 
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
   const [justification, setJustification] = useState('');
@@ -110,11 +113,11 @@ export function AnomalyDetailView({
 
   // Decision-aware validation logic
   const justificationRequired = ['Confirmed', 'Dismissed'].includes(decision as string);
-  const isJustificationMissing = justificationRequired && justification.trim().length === 0;
-  const isSaveDisabled = !decision || isJustificationMissing || isAiLoading;
-
+  const isSaveDisabled = isAiLoading || !decision || (justificationRequired && justification.trim().length === 0);
+  
   const handleSaveDecision = () => {
-    // Re-validate inside handler for robustness
+    const isJustificationMissing = justificationRequired && justification.trim().length === 0;
+  
     if (!decision) {
       toast({
         variant: "destructive",
@@ -123,7 +126,7 @@ export function AnomalyDetailView({
       });
       return;
     }
-    if (justificationRequired && justification.trim().length === 0) {
+    if (isJustificationMissing) {
       toast({
         variant: "destructive",
         title: "Justification Required",
@@ -308,7 +311,7 @@ export function AnomalyDetailView({
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
                   />
-                  {isJustificationMissing && (
+                  {justificationRequired && justification.trim().length === 0 && (
                     <p className="text-sm text-destructive">
                       Justification is required for this decision.
                     </p>
