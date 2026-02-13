@@ -13,19 +13,47 @@ import {
   TableRow,
 } from '../ui/table';
 import { Badge } from '../ui/badge';
-import type { internalAuditTemplateV1 } from '@/lib/audit_template';
-import type { accountingStandards } from '@/lib/accounting_standards';
-import { Anomaly } from '@/lib/types';
+import { internalAuditTemplateV1 } from '@/lib/audit_template';
+import { accountingStandards } from '@/lib/accounting_standards';
+import { Anomaly, UploadedDoc } from '@/lib/types';
 
 type AuditReportViewProps = {
   template: typeof internalAuditTemplateV1;
   standards: typeof accountingStandards;
 };
 
+type ReportSectionProps = {
+  section: (typeof internalAuditTemplateV1)['sections'][number];
+  confirmedFindings: Anomaly[];
+  overallRisk: string;
+  dismissedFindings: Anomaly[];
+  uploadedDocs: UploadedDoc[];
+  standards: typeof accountingStandards;
+  reportDate: string;
+};
+
 // This helper component renders the content for each section based on its ID and type
-const ReportSection = ({ section, confirmedFindings, overallRisk, dismissedFindings, uploadedDocs, standards, reportDate }: any) => {
+const ReportSection = ({
+  section,
+  confirmedFindings,
+  overallRisk,
+  dismissedFindings,
+  uploadedDocs,
+  standards,
+  reportDate,
+}: ReportSectionProps) => {
   switch (section.id) {
     case '6':
+      return <p className="report-section-content">{section.description}</p>;
+
+    case '6.1':
+    case '6.2':
+    case '6.3':
+    case '6.4':
+    case '6.5':
+    case '6.6':
+    case '6.7':
+    case '6.8':
       return (
         <div className="report-section-content space-y-6">
           <p>{section.description}</p>
@@ -39,144 +67,192 @@ const ReportSection = ({ section, confirmedFindings, overallRisk, dismissedFindi
                   <strong>Observation:</strong> {f.description}
                 </p>
                 <p className="mt-1">
-                  <strong>Impact:</strong> This indicates a potential control weakness that could lead to financial misstatement or non-compliance.
+                  <strong>Impact:</strong> This indicates a potential control
+                  weakness that could lead to financial misstatement or
+                  non-compliance.
                 </p>
                 <p className="mt-1">
                   <strong>Auditor's Conclusion:</strong> {f.auditorComment}
                 </p>
-                 <p className="mt-1">
-                  <strong>Recommendation:</strong> We recommend implementing a secondary check for this type of transaction before processing. Responsibility should be assigned to the Finance Manager with a target completion of 30 days.
+                <p className="mt-1">
+                  <strong>Recommendation:</strong> We recommend implementing a
+                  secondary check for this type of transaction before
+                  processing. Responsibility should be assigned to the Finance
+                  Manager with a target completion of 30 days.
                 </p>
               </div>
             ))
           ) : (
-            <p className="text-gray-500">No reportable observations for this section.</p>
+            <p className="text-gray-500">
+              No reportable observations for this section.
+            </p>
           )}
         </div>
       );
     case '7':
-        const riskSummary = {
-            'Financial Reporting': 'Low',
-            'Statutory Compliance': confirmedFindings.some((f:any) => f.riskScore > 60) ? 'Medium' : 'Low',
-            'Operational Controls': confirmedFindings.some((f:any) => f.riskScore > 80) ? 'High' : 'Medium',
-            'Related Party Transactions': 'Not Assessed'
-        };
-        return (
-             <div className="report-section-content">
-                <p className='mb-4'>{section.description}</p>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Area</TableHead><TableHead>Risk Level</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {Object.entries(riskSummary).map(([area, risk]) => (
-                            <TableRow key={area}>
-                                <TableCell>{area}</TableCell>
-                                <TableCell>{risk}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-             </div>
-        );
+      const riskSummary = {
+        'Financial Reporting': 'Low',
+        'Statutory Compliance': confirmedFindings.some((f: any) => f.riskScore > 60)
+          ? 'Medium'
+          : 'Low',
+        'Operational Controls': confirmedFindings.some((f: any) => f.riskScore > 80)
+          ? 'High'
+          : 'Medium',
+        'Related Party Transactions': 'Not Assessed',
+      };
+      return (
+        <div className="report-section-content">
+          <p className="mb-4">{section.description}</p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Area</TableHead>
+                <TableHead>Risk Level</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(riskSummary).map(([area, risk]) => (
+                <TableRow key={area}>
+                  <TableCell>{area}</TableCell>
+                  <TableCell>{risk}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      );
     case '8':
       return (
         <div className="report-section-content">
           <p>{section.description}</p>
-          <p className='mt-4'>We report that no fraud by the company or on the company by its officers or employees has been noticed or reported during the course of our audit that would be material to the financial statements.</p>
+          <p className="mt-4">
+            We report that no fraud by the company or on the company by its
+            officers or employees has been noticed or reported during the course
+            of our audit that would be material to the financial statements.
+          </p>
         </div>
       );
     case '9':
       return (
         <div className="report-section-content space-y-4">
           <p>
-            Based on our internal audit procedures, and the information and explanations provided, our overall assessment of the internal control environment is that of{' '}
+            Based on our internal audit procedures, and the information and
+            explanations provided, our overall assessment of the internal
+            control environment is that of{' '}
             <strong>{overallRisk} Risk</strong>.
           </p>
           <p>
-            The audit identified a total of <strong>{confirmedFindings.length}</strong>{' '}
-            confirmed findings requiring management attention. Key risk areas identified include: { [...new Set(confirmedFindings.map((f:any) => f.type))].join(', ') || 'None'}.
+            The audit identified a total of{' '}
+            <strong>{confirmedFindings.length}</strong> confirmed findings
+            requiring management attention. Key risk areas identified include:{' '}
+            {[...new Set(confirmedFindings.map((f: any) => f.type))].join(
+              ', '
+            ) || 'None'}
+            .
           </p>
-          <p>
-            {section.description}
-          </p>
+          <p>{section.description}</p>
         </div>
       );
     case '10': // Annexures
       return (
         <div className="report-section-content space-y-8">
-            <div>
-                <h3 className="font-bold mb-2">Annexure A: List of Dismissed Findings</h3>
-                {dismissedFindings.length > 0 ? (
-                <ul className="list-disc pl-5 space-y-2 text-sm">
-                    {dismissedFindings.map((f: Anomaly) => (
-                    <li key={f.id}>
-                        <strong>
-                        {f.id} ({f.type}):
-                        </strong>{' '}
-                        {f.auditorComment}
-                    </li>
-                    ))}
-                </ul>
-                ) : (
-                <p className="text-sm text-gray-500">
-                    No findings were dismissed during this audit.
-                </p>
-                )}
-            </div>
-            <div className="pt-6 border-t">
-                <h3 className="font-bold mb-2">Annexure B: List of Documents Verified</h3>
-                {uploadedDocs.length > 0 ? (
-                <ul className="list-disc pl-5 space-y-1 text-sm">
-                    {uploadedDocs.map((doc: any) => <li key={doc.id}>{doc.name}</li>)}
-                </ul>
-                ): (
-                <p className="text-sm text-gray-500">
-                    No documents were recorded in the ingestion history.
-                </p>
-                )}
-            </div>
-            <div className="pt-6 border-t">
-                <h3 className="font-bold mb-2">Annexure C: Applicable Accounting Policies (as per {standards.version})</h3>
-                {standards.accounting_policies.length > 0 ? (
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Policy</TableHead><TableHead>Rule Summary</TableHead><TableHead>Reference</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                        {standards.accounting_policies.map((policy: any) => (
-                            <TableRow key={policy.policy_name}>
-                                <TableCell className="font-medium">{policy.policy_name}</TableCell>
-                                <TableCell>{policy.rule_summary}</TableCell>
-                                <TableCell><Badge variant="outline">{policy.compliance_reference}</Badge></TableCell>
-                            </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                ): (
-                <p className="text-sm text-gray-500">
-                    No specific accounting policies were detailed.
-                </p>
-                )}
-            </div>
+          <div>
+            <h3 className="font-bold mb-2">
+              Annexure A: List of Dismissed Findings
+            </h3>
+            {dismissedFindings.length > 0 ? (
+              <ul className="list-disc pl-5 space-y-2 text-sm">
+                {dismissedFindings.map((f: Anomaly) => (
+                  <li key={f.id}>
+                    <strong>
+                      {f.id} ({f.type}):
+                    </strong>{' '}
+                    {f.auditorComment}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No findings were dismissed during this audit.
+              </p>
+            )}
+          </div>
+          <div className="pt-6 border-t">
+            <h3 className="font-bold mb-2">
+              Annexure B: List of Documents Verified
+            </h3>
+            {uploadedDocs.length > 0 ? (
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {uploadedDocs.map((doc: any) => (
+                  <li key={doc.id}>{doc.name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No documents were recorded in the ingestion history.
+              </p>
+            )}
+          </div>
+          <div className="pt-6 border-t">
+            <h3 className="font-bold mb-2">
+              Annexure C: Applicable Accounting Policies (as per{' '}
+              {standards.version})
+            </h3>
+            {standards.accounting_policies.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Policy</TableHead>
+                    <TableHead>Rule Summary</TableHead>
+                    <TableHead>Reference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {standards.accounting_policies.map((policy: any) => (
+                    <TableRow key={policy.policy_name}>
+                      <TableCell className="font-medium">
+                        {policy.policy_name}
+                      </TableCell>
+                      <TableCell>{policy.rule_summary}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {policy.compliance_reference}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No specific accounting policies were detailed.
+              </p>
+            )}
+          </div>
         </div>
       );
     case 'SIGNATURE_BLOCK':
-        return (
-            <div className="report-section-content bg-gray-50 p-4 rounded-md">
-              <p className="italic text-sm">
-                "{section.description}"
-              </p>
-              <div className="mt-8 pt-8 border-t">
-                <p className="font-semibold">For, [Audit Firm Name]</p>
-                <p className='mt-16 font-semibold'>{mockCurrentUser.name}</p>
-                <p className="text-sm">Partner</p>
-                <p className="text-sm">Membership Number: [Placeholder M.No.]</p>
-                <p className="text-sm">Firm Registration Number: [Placeholder FRN]</p>
-                <p className="text-sm">Place: Mumbai</p>
-                <p className="text-sm">Date: {reportDate}</p>
-              </div>
-            </div>
-        );
+      return (
+        <div className="report-section-content bg-gray-50 p-4 rounded-md">
+          <p className="italic text-sm">"{section.description}"</p>
+          <div className="mt-8 pt-8 border-t">
+            <p className="font-semibold">For, [Audit Firm Name]</p>
+            <p className="mt-16 font-semibold">{mockCurrentUser.name}</p>
+            <p className="text-sm">Partner</p>
+            <p className="text-sm">Membership Number: [Placeholder M.No.]</p>
+            <p className="text-sm">
+              Firm Registration Number: [Placeholder FRN]
+            </p>
+            <p className="text-sm">Place: Mumbai</p>
+            <p className="text-sm">Date: {reportDate}</p>
+          </div>
+        </div>
+      );
     default:
       if (section.type === 'list') {
-        const listItems = section.description.split('. ').filter((s: string) => s.trim() !== '');
+        const listItems = section.description
+          .split('. ')
+          .filter((s: string) => s.trim() !== '');
         return (
           <ul className="report-section-content list-disc pl-5 space-y-2">
             {listItems.map((item: string, index: number) => (
@@ -189,12 +265,11 @@ const ReportSection = ({ section, confirmedFindings, overallRisk, dismissedFindi
   }
 };
 
-
 export function AuditReportView({ template, standards }: AuditReportViewProps) {
   const { findings, uploadedDocs } = useAudit();
   const confirmedFindings = findings.filter((f) => f.status === 'Confirmed');
   const dismissedFindings = findings.filter((f) => f.status === 'Dismissed');
-  
+
   const companyDetails = {
     name: 'Example Corp Pvt. Ltd.',
     type: 'Private Limited Company',
@@ -212,7 +287,7 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
     : confirmedFindings.some((f) => f.riskScore > 60)
     ? 'Moderate'
     : 'Low';
-    
+
   const handleDownload = () => {
     window.print();
   };
@@ -250,7 +325,8 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
             <div className="absolute bottom-12 text-sm text-gray-500">
               <p className="font-bold">CONFIDENTIAL</p>
               <p>
-                This document is intended solely for the use of the management and board of {companyDetails.name}.
+                This document is intended solely for the use of the management
+                and board of {companyDetails.name}.
               </p>
             </div>
           </div>
@@ -258,20 +334,20 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
 
         {/* Report Body */}
         <div className="report-body space-y-12">
-            {template.sections.map(section => (
-                <section key={section.id} className="report-page">
-                    <h2 className="report-section-header">{section.title}</h2>
-                    <ReportSection
-                        section={section}
-                        confirmedFindings={confirmedFindings}
-                        overallRisk={overallRisk}
-                        dismissedFindings={dismissedFindings}
-                        uploadedDocs={uploadedDocs}
-                        standards={standards}
-                        reportDate={reportDate}
-                    />
-                </section>
-            ))}
+          {template.sections.map((section) => (
+            <section key={section.id} className="report-page">
+              <h2 className="report-section-header">{section.title}</h2>
+              <ReportSection
+                section={section}
+                confirmedFindings={confirmedFindings}
+                overallRisk={overallRisk}
+                dismissedFindings={dismissedFindings}
+                uploadedDocs={uploadedDocs}
+                standards={standards}
+                reportDate={reportDate}
+              />
+            </section>
+          ))}
         </div>
       </div>
     </div>
