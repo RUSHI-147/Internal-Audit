@@ -14,12 +14,12 @@ import {
 } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { internalAuditTemplateV1 } from '@/lib/audit_template';
-import { accountingStandards } from '@/lib/accounting_standards';
+import { accounting_standards } from '@/lib/accounting_standards';
 import { Anomaly, UploadedDoc } from '@/lib/types';
 
 type AuditReportViewProps = {
   template: typeof internalAuditTemplateV1;
-  standards: typeof accountingStandards;
+  standards: typeof accounting_standards;
 };
 
 type ReportSectionProps = {
@@ -28,7 +28,7 @@ type ReportSectionProps = {
   overallRisk: string;
   dismissedFindings: Anomaly[];
   uploadedDocs: UploadedDoc[];
-  standards: typeof accountingStandards;
+  standards: typeof accounting_standards;
   reportDate: string;
 };
 

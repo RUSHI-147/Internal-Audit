@@ -51,6 +51,10 @@ export function AnomalyDetailView({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // This effect initializes the form state.
+    // It now only runs when the anomaly ID changes, preventing the user's
+    // selection from being wiped out during re-renders caused by other
+    // state updates (e.g., AI data loading).
     if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
       setDecision(anomaly.status);
       setJustification(anomaly.auditorComment);
@@ -58,7 +62,7 @@ export function AnomalyDetailView({
       setDecision('');
       setJustification('');
     }
-  }, [anomaly.id, anomaly.status, anomaly.auditorComment]);
+  }, [anomaly.id]);
 
 
   useEffect(() => {

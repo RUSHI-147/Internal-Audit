@@ -3,7 +3,7 @@
 import { useAudit } from '@/contexts/AuditContext';
 import { Button } from '@/components/ui/button';
 import { internalAuditTemplateV1 } from "@/lib/audit_template";
-import { accountingStandards } from "@/lib/accounting_standards";
+import { accounting_standards } from "@/lib/accounting_standards";
 
 import {
   Card,
@@ -21,7 +21,7 @@ export default function ReportsPage() {
   const { auditStatus, findings } = useAudit();
   const [showReport, setShowReport] = useState(false);
   const template = internalAuditTemplateV1;
-  const standards = accountingStandards;
+  const standards = accounting_standards;
 
 
   const pendingDecisions = findings.filter(
