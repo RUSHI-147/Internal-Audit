@@ -33,10 +33,19 @@ ai.defineModel(
 
     const data = await response.json();
 
-    const text =
+    let text =
       Array.isArray(data) && data[0]?.generated_text
         ? data[0].generated_text
         : JSON.stringify(data);
+
+    // The response from instruct models on HF may include the original prompt
+    // or other conversational text. We need to extract just the JSON object.
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      text = text.substring(jsonStart, jsonEnd + 1);
+    }
 
     return {
       message: {
