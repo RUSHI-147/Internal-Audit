@@ -51,10 +51,6 @@ export function AnomalyDetailView({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // This effect initializes the form state.
-    // It now only runs when the anomaly ID changes, preventing the user's
-    // selection from being wiped out during re-renders caused by other
-    // state updates (e.g., AI data loading).
     if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
       setDecision(anomaly.status);
       setJustification(anomaly.auditorComment);
@@ -62,9 +58,10 @@ export function AnomalyDetailView({
       setDecision('');
       setJustification('');
     }
-  }, [anomaly.id]);
+  }, [anomaly.id, anomaly.status, anomaly.auditorComment]);
 
 
+  const detailsString = JSON.stringify(anomaly.details);
   useEffect(() => {
     if (anomaly.aiExplanation && anomaly.aiRiskScore) {
       return;
@@ -103,7 +100,8 @@ export function AnomalyDetailView({
       }
     };
     fetchAiData();
-  }, [anomaly.id, anomaly.aiExplanation, anomaly.aiRiskScore, anomaly.description, anomaly.details, toast, updateFindingAiData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anomaly.id, anomaly.aiExplanation, anomaly.aiRiskScore, anomaly.description, detailsString, updateFindingAiData, toast]);
 
 
   const hasDecisionBeenMade =
@@ -368,7 +366,7 @@ export function AnomalyDetailView({
               <div
                 className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8"
                 style={{
-                  borderColor: `hsl(var(--primary) / ${
+                  borderColor: `hsl(231 48% 48% / ${
                     anomaly.aiRiskScore.riskScore / 100
                   })`,
                 }}
