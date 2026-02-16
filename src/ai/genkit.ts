@@ -26,12 +26,26 @@ ai.defineModel(
           parameters: {
             temperature: 0.2,
             max_new_tokens: 1000,
+            return_full_text: false, // Only return the generated text
+          },
+          options: {
+            wait_for_model: true, // Avoid "model is loading" errors
           },
         }),
       }
     );
 
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Hugging Face API Error:", errorText);
+        throw new Error(`Hugging Face API request failed with status ${response.status}`);
+    }
+
     const data = await response.json();
+
+    if (data.error) {
+        throw new Error(`Hugging Face API Error: ${data.error}`);
+    }
 
     let text =
       Array.isArray(data) && data[0]?.generated_text
@@ -45,6 +59,10 @@ ai.defineModel(
 
     if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
       text = text.substring(jsonStart, jsonEnd + 1);
+    } else {
+      // If we can't find a JSON object, the call has failed from our perspective.
+      console.error("Could not find a valid JSON object in the model response:", text);
+      throw new Error("Model did not return a parsable JSON object.");
     }
 
     return {
