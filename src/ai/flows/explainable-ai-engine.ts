@@ -38,6 +38,7 @@ export async function generateExplanationAndEvidencePack(input: ExplanationAndEv
 
 const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
+  model: 'huggingface-llama3',
   input: {schema: ExplanationAndEvidencePackInputSchema},
   output: {schema: ExplanationAndEvidencePackOutputSchema},
   prompt: `You are an AI assistant designed to generate human-readable explanations and evidence packs for flagged audit issues.

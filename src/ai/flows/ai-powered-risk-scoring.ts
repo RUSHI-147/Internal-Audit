@@ -32,6 +32,7 @@ export async function aiPoweredRiskScoring(input: AiPoweredRiskScoringInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
+  model: 'huggingface-llama3',
   input: {schema: AiPoweredRiskScoringInputSchema},
   output: {schema: AiPoweredRiskScoringOutputSchema},
   prompt: `You are an AI-powered risk scoring engine for internal audits. Your task is to assign a risk score (0-100) to a flagged anomaly based on the provided description, configurable risk parameters, and confidence interval.
