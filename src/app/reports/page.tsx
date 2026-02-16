@@ -24,11 +24,10 @@ export default function ReportsPage() {
   const standards = accounting_standards;
 
 
-  const pendingDecisions = findings.filter(
-    (f) => f.status === 'AI Flagged' || f.status === 'Needs More Info'
-  ).length;
   const isAuditComplete = auditStatus === 'COMPLETED';
-  const canGenerateReport = isAuditComplete && pendingDecisions === 0;
+  const canGenerateReport = isAuditComplete && findings.length > 0 && findings.every(f => f.status === 'Confirmed' || f.status === 'Dismissed');
+  const unresolvedFindingsCount = findings.filter(f => f.status === 'AI Flagged' || f.status === 'Needs More Info').length;
+
 
   const handleGenerateReport = () => {
     setShowReport(true);
@@ -72,7 +71,7 @@ export default function ReportsPage() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Action Required</AlertTitle>
               <AlertDescription>
-                You have {pendingDecisions} pending finding(s) that need
+                You have {unresolvedFindingsCount} pending finding(s) that need
                 auditor review. Please resolve all 'AI Flagged' and 'Needs More Info' items in the
                 Audit Review Queue.
               </AlertDescription>

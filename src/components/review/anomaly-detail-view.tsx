@@ -2,7 +2,7 @@
 
 import { getRiskScore, getExplanation } from '@/app/actions';
 import { Anomaly, AnomalyStatus } from '@/lib/types';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -43,6 +43,7 @@ export function AnomalyDetailView({
   const { findings, updateFindingStatus, updateFindingAiData } = useAudit();
   const { toast } = useToast();
 
+  // Always get the latest version of the anomaly from the context
   const anomaly = findings.find((f) => f.id === anomalyProp.id) ?? anomalyProp;
 
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
@@ -50,19 +51,25 @@ export function AnomalyDetailView({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Effect to reset form state ONLY when a new anomaly is selected
   useEffect(() => {
     if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
       setDecision(anomaly.status);
       setJustification(anomaly.auditorComment);
     } else {
+      // Reset for new, un-decided anomalies
       setDecision('');
       setJustification('');
     }
   }, [anomaly.id, anomaly.status, anomaly.auditorComment]);
 
 
-  const detailsString = JSON.stringify(anomaly.details);
+  // Create a stable representation of details for the useEffect dependency array
+  const stableDetailsString = useMemo(() => JSON.stringify(anomaly.details), [anomaly.details]);
+
+  // Effect to fetch AI data. Now with a stable dependency array to prevent loops.
   useEffect(() => {
+    // No need to fetch if data is already present
     if (anomaly.aiExplanation && anomaly.aiRiskScore) {
       return;
     }
@@ -84,10 +91,15 @@ export function AnomalyDetailView({
             sourceDocuments: anomaly.details.sourceDocuments.join(', '),
           }),
         ]);
-        updateFindingAiData(anomaly.id, {
-          riskScore: riskResult,
-          explanation: explanationResult,
-        });
+
+        if (riskResult && explanationResult) {
+          updateFindingAiData(anomaly.id, {
+            riskScore: riskResult,
+            explanation: explanationResult,
+          });
+        } else {
+           throw new Error("Received incomplete data from AI services.");
+        }
       } catch (error) {
         console.error('Failed to fetch AI insights:', error);
         toast({
@@ -99,9 +111,9 @@ export function AnomalyDetailView({
         setIsAiLoading(false);
       }
     };
+    
     fetchAiData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anomaly.id, anomaly.aiExplanation, anomaly.aiRiskScore, anomaly.description, detailsString, updateFindingAiData, toast]);
+  }, [anomaly.id, anomaly.description, stableDetailsString, anomaly.aiExplanation, anomaly.aiRiskScore, updateFindingAiData, toast]);
 
 
   const hasDecisionBeenMade =
@@ -126,26 +138,29 @@ export function AnomalyDetailView({
       toast({
         variant: 'destructive',
         title: 'Justification Required',
-        description: 'A justification is mandatory for this decision.',
+        description: 'A justification is mandatory for Confirmed/Dismissed findings.',
       });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      updateFindingStatus(anomaly.id, decision, justification);
-      toast({
-        title: 'Decision Saved',
-        description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
-      });
-      onDecisionSaved();
+      // Simulate API call
+      setTimeout(() => {
+        updateFindingStatus(anomaly.id, decision, justification);
+        toast({
+          title: 'Decision Saved',
+          description: `Anomaly ${anomaly.id} has been marked as ${decision}.`,
+        });
+        onDecisionSaved();
+        setIsSubmitting(false);
+      }, 500);
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Save Failed',
         description: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -154,14 +169,10 @@ export function AnomalyDetailView({
     if (isAiLoading || isSubmitting || !decision) {
       return true;
     }
-    if (
-      (decision === 'Confirmed' || decision === 'Dismissed') &&
-      justification.trim().length === 0
-    ) {
-      return true;
-    }
+    // De-couple validation from the button's disabled state for better UX
+    // The explicit validation will happen in the handler.
     return false;
-  }, [isAiLoading, isSubmitting, decision, justification]);
+  }, [isAiLoading, isSubmitting, decision]);
   
   const isRiskLoading = isAiLoading && !anomaly.aiRiskScore;
   const isExplanationLoading = isAiLoading && !anomaly.aiExplanation;
@@ -331,16 +342,11 @@ export function AnomalyDetailView({
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
                   />
-                  {(decision === 'Confirmed' || decision === 'Dismissed') && justification.trim().length === 0 && (
-                    <p className="text-sm text-destructive">
-                      Justification is required for this decision.
-                    </p>
-                  )}
                 </div>
 
                 <Button
                   onClick={handleSaveDecision}
-                  disabled={isSaveDisabled}
+                  disabled={isAiLoading || isSubmitting}
                 >
                   {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" /> }
                   {isSubmitting ? 'Saving...' : 'Save Decision'}
