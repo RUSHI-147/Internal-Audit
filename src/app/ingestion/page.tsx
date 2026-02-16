@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Upload, PlusCircle, CheckCircle, Loader } from 'lucide-react';
+import { Upload, CheckCircle, Loader } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Ingestion, UploadedDoc } from '@/lib/types';
 import { DocumentDemandList } from '@/components/ingestion/document-demand-list';
@@ -53,18 +53,23 @@ export default function IngestionPage() {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files) return;
 
-    const newDoc: UploadedDoc = {
-      id: `DOC-${(uploadedDocs.length + 1).toString().padStart(3, '0')}`,
-      name: file.name,
-      type: 'File',
-      date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      status: 'Completed',
-    };
+    const currentDocsLength = uploadedDocs.length;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file) continue;
 
-    addUploadedDoc(newDoc);
+      const newDoc: UploadedDoc = {
+        id: `DOC-${(currentDocsLength + i + 1).toString().padStart(3, '0')}`,
+        name: file.name,
+        type: 'File',
+        date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        status: 'Completed',
+      };
+      addUploadedDoc(newDoc);
+    }
 
     // Reset file input to allow uploading the same file again
     if (event.target) {
@@ -103,6 +108,7 @@ export default function IngestionPage() {
         className="hidden"
         accept=".csv,.xlsx,.xls,.pdf,.zip"
         disabled={!companyDetails}
+        multiple
       />
       <div>
         <h1 className="text-3xl font-headline font-bold tracking-tight">
@@ -156,7 +162,7 @@ export default function IngestionPage() {
                   onClick={handleFileUploadClick}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload File
+                  Upload Files
                 </Button>
                 <Button
                   onClick={startAudit}
