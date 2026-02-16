@@ -52,18 +52,18 @@ const prompt = ai.definePrompt({
   Source Documents: {{{sourceDocuments}}}
   Analyst Notes: {{{analystNotes}}}
 
-  Explanation:
-  Write a clear, concise, and human-readable explanation of why the issue was flagged, the patterns that were violated, and the evidence that supports it.
+  Your output MUST be a single JSON object that conforms to the following structure. Do not add any text before or after the JSON object.
 
-  Evidence Pack:
-  Assemble an evidence pack that includes the following:
-  - Supporting Transactions: List the relevant transactions related to the issue.
-  - Source Documents: Include the source documents that provide context to the issue.
-  - Transformation Logs: Include the transformation logs that show how the data was processed.
-  - Analyst Notes: Include any notes from the analyst who reviewed the issue.
-  - Hash-Signed Bundle: Generate an immutable hash-signed bundle of the evidence pack to ensure its integrity.
-  \n  Ensure the explanation and evidence pack are regulator-ready and easily reproducible.
-  Output MUST be in JSON format.
+  {
+    "explanation": "A human-readable explanation of why the issue was flagged, the patterns violated, and the supporting evidence.",
+    "evidencePack": {
+      "supportingTransactions": "A summary of supporting transactions related to the issue.",
+      "sourceDocuments": "A summary of source documents related to the issue.",
+      "transformationLogs": "A summary of transformation logs for the issue.",
+      "analystNotes": "A summary of analyst notes on the issue, if available.",
+      "hashSignedBundle": "A placeholder string for the hash, like 'to-be-generated-by-server'."
+    }
+  }
   `,config: {
     safetySettings: [
       {

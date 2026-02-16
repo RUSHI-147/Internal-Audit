@@ -41,17 +41,13 @@ Anomaly Description: {{{anomalyDescription}}}
 Risk Parameters: {{{riskParameters}}}
 Confidence Interval: {{{confidenceInterval}}}
 
-Provide a risk score, a confidence score, reason codes explaining the risk assignment, and a human-readable explanation.
+Your output MUST be a single JSON object that conforms to the following structure. Do not add any text before or after the JSON object.
 
-Ensure that the risk score and confidence score are numbers between 0 and 100. Reason codes should be concise and informative.
-The explanation should be clear and easy to understand by an audit manager.
-
-Output in JSON format:
 {
-  "riskScore": number,
-  "confidenceScore": number,
-  "reasonCodes": string,
-  "explanation": string
+  "riskScore": <A number between 0 and 100>,
+  "confidenceScore": <A number between 0 and 100 for the confidence of the risk assessment>,
+  "reasonCodes": "<A concise string of reason codes explaining the risk assignment>",
+  "explanation": "<A human-readable explanation of the risk scoring, understandable by an audit manager>"
 }`,
 });
 
