@@ -53,12 +53,20 @@ ai.defineModel(
         : JSON.stringify(data);
 
     // The response from instruct models on HF may include the original prompt
-    // or other conversational text. We need to extract just the JSON object.
+    // or other conversational text. We need to robustly extract the JSON object.
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}');
 
     if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      text = text.substring(jsonStart, jsonEnd + 1);
+      const potentialJson = text.substring(jsonStart, jsonEnd + 1);
+      try {
+        // Validate that it's actually parsable JSON
+        JSON.parse(potentialJson);
+        text = potentialJson;
+      } catch (e) {
+        console.error("Could not parse extracted JSON from model response:", potentialJson, e);
+        throw new Error("Model returned a string containing an invalid JSON object.");
+      }
     } else {
       // If we can't find a JSON object, the call has failed from our perspective.
       console.error("Could not find a valid JSON object in the model response:", text);
