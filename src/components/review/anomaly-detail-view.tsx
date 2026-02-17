@@ -98,7 +98,7 @@ export function AnomalyDetailView({
             explanation: explanationResult,
           });
         } else {
-           throw new Error("Received incomplete data from AI services.");
+          console.warn("AI returned incomplete data:", {riskResult, explanationResult});
         }
       } catch (error) {
         console.error('Failed to fetch AI insights:', error);
@@ -370,12 +370,13 @@ export function AnomalyDetailView({
               <Skeleton className="h-32 w-32 rounded-full mx-auto" />
             ) : anomaly.aiRiskScore ? (
               <div
-                className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8"
-                style={{
-                  borderColor: `hsl(231 48% 48% / ${
-                    anomaly.aiRiskScore.riskScore / 100
-                  })`,
-                }}
+                className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary"
+                style={
+                  {
+                    '--tw-border-opacity':
+                      (anomaly.aiRiskScore.riskScore ?? 0) / 100,
+                  } as React.CSSProperties
+                }
               >
                 <span className="text-4xl font-bold">
                   {Math.round(anomaly.aiRiskScore.riskScore)}
