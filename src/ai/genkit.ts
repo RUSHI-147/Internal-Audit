@@ -1,3 +1,5 @@
+'use server';
+
 import { genkit } from 'genkit';
 
 export const ai = genkit({});
@@ -8,10 +10,10 @@ ai.defineModel(
     apiVersion: 'v2',
   },
   async (request) => {
-    // Convert Genkit messages to plain prompt
-    const prompt = request.messages
-      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-      .join('\n');
+    // Llama-3-Instruct expects a plain prompt, not one with roles.
+    // We'll take the content of the last message which contains the full prompt.
+    const lastMessage = request.messages[request.messages.length - 1];
+    const prompt = lastMessage.content;
 
     const response = await fetch(
       'https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct',
