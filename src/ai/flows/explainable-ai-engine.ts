@@ -41,30 +41,42 @@ const prompt = ai.definePrompt({
   model: 'huggingface-llama3',
   input: {schema: ExplanationAndEvidencePackInputSchema},
   output: {schema: ExplanationAndEvidencePackOutputSchema},
-  prompt: `You are an AI assistant designed to generate human-readable explanations and evidence packs for flagged audit issues.
+  prompt: `You are a STRICT JSON generator for an internal audit system.
 
-  Based on the issue description, violated patterns, supporting evidence, transformation logs, source documents, and analyst notes (if available), create a comprehensive explanation and evidence pack.
+IMPORTANT RULES:
+- Output ONLY valid JSON.
+- Do NOT include markdown.
+- Do NOT include backticks.
+- Do NOT include explanations outside JSON.
+- Do NOT include comments.
+- Do NOT add any text before or after the JSON object.
+- Ensure all fields are present.
+- If information is missing, return empty strings.
 
-  Issue Description: {{{issueDescription}}}
-  Violated Patterns: {{{violatedPatterns}}}
-  Supporting Evidence: {{{supportingEvidence}}}
-  Transformation Logs: {{{transformationLogs}}}
-  Source Documents: {{{sourceDocuments}}}
-  Analyst Notes: {{{analystNotes}}}
+Generate a JSON object EXACTLY in this format:
 
-  Your output MUST be a single JSON object that conforms to the following structure. Do not add any text before or after the JSON object.
-
-  {
-    "explanation": "A human-readable explanation of why the issue was flagged, the patterns violated, and the supporting evidence.",
-    "evidencePack": {
-      "supportingTransactions": "A summary of supporting transactions related to the issue.",
-      "sourceDocuments": "A summary of source documents related to the issue.",
-      "transformationLogs": "A summary of transformation logs for the issue.",
-      "analystNotes": "A summary of analyst notes on the issue, if available.",
-      "hashSignedBundle": "A placeholder string for the hash, like 'to-be-generated-by-server'."
-    }
+{
+  "explanation": "string",
+  "evidencePack": {
+    "supportingTransactions": "string",
+    "sourceDocuments": "string",
+    "transformationLogs": "string",
+    "analystNotes": "string",
+    "hashSignedBundle": "to-be-generated-by-server"
   }
-  `,config: {
+}
+
+Now analyze the following:
+
+Issue Description: {{{issueDescription}}}
+Violated Patterns: {{{violatedPatterns}}}
+Supporting Evidence: {{{supportingEvidence}}}
+Transformation Logs: {{{transformationLogs}}}
+Source Documents: {{{sourceDocuments}}}
+Analyst Notes: {{{analystNotes}}}
+
+Return JSON only.
+`,config: {
     safetySettings: [
       {
         category: 'HARM_CATEGORY_DANGEROUS_CONTENT',

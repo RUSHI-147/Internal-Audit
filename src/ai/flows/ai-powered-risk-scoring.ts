@@ -35,20 +35,33 @@ const prompt = ai.definePrompt({
   model: 'huggingface-llama3',
   input: {schema: AiPoweredRiskScoringInputSchema},
   output: {schema: AiPoweredRiskScoringOutputSchema},
-  prompt: `You are an AI-powered risk scoring engine for internal audits. Your task is to assign a risk score (0-100) to a flagged anomaly based on the provided description, configurable risk parameters, and confidence interval.
+  prompt: `You are a STRICT JSON risk scoring engine.
+
+IMPORTANT RULES:
+- Output ONLY valid JSON.
+- Do NOT include markdown.
+- Do NOT include backticks.
+- Do NOT include explanations outside JSON.
+- Do NOT include comments.
+- Ensure riskScore is a number between 0 and 100.
+- Ensure confidenceScore is a number between 0 and 100.
+- All fields must exist.
+
+Return JSON EXACTLY in this format:
+
+{
+  "riskScore": number,
+  "confidenceScore": number,
+  "reasonCodes": "string",
+  "explanation": "string"
+}
 
 Anomaly Description: {{{anomalyDescription}}}
 Risk Parameters: {{{riskParameters}}}
 Confidence Interval: {{{confidenceInterval}}}
 
-Your output MUST be a single JSON object that conforms to the following structure. Do not add any text before or after the JSON object.
-
-{
-  "riskScore": <A number between 0 and 100>,
-  "confidenceScore": <A number between 0 and 100 for the confidence of the risk assessment>,
-  "reasonCodes": "<A concise string of reason codes explaining the risk assignment>",
-  "explanation": "<A human-readable explanation of the risk scoring, understandable by an audit manager>"
-}`,
+Return JSON only.
+`,
 });
 
 const aiPoweredRiskScoringFlow = ai.defineFlow(
