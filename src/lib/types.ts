@@ -75,6 +75,10 @@ export type User = {
   name: string;
   email: string;
   avatarUrl: string;
+  role: string;
+  organization: string;
+  licenseId?: string;
+  accountCreated: string;
 };
 
 export type RiskHeatmapData = {
@@ -96,3 +100,16 @@ export type AuditStatus =
   | 'RUNNING'
   | 'COMPLETED'
   | 'FAILED';
+
+
+export type CompanyType = "Private Ltd" | "Public Ltd" | "OPC" | "Proprietorship";
+
+export type AuditReportLog = {
+  reportId: string;
+  companyName: string;
+  companyType: CompanyType;
+  auditDate: string;
+  cost: number;
+  status: "Completed" | "Draft";
+  pdfUrl: string;
+};

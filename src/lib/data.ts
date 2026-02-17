@@ -155,6 +155,10 @@ export const mockCurrentUser: User = {
   name: 'Alex Chen',
   email: 'alex.chen@auditai.com',
   avatarUrl: 'https://i.pravatar.cc/150?u=alexchen',
+  role: 'Audit Manager',
+  organization: 'AuditAI Inc.',
+  licenseId: 'ICAI-123456',
+  accountCreated: '2023-01-15T09:00:00Z',
 };
 
 export const mockRiskHeatmapData: RiskHeatmapData = [
