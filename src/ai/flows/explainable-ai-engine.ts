@@ -40,11 +40,11 @@ const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
   model: 'huggingface-llama3',
   input: {schema: ExplanationAndEvidencePackInputSchema},
-  output: {schema: ExplanationAndEvidencePackOutputSchema},
+  //output: {schema: ExplanationAndEvidencePackOutputSchema},
   prompt: `You are a STRICT JSON generator for an internal audit system.
 
 IMPORTANT RULES:
-- Output ONLY valid JSON.
+- Return STRICT JSON only.
 - Do NOT include markdown.
 - Do NOT include backticks.
 - Do NOT include explanations outside JSON.
@@ -92,8 +92,26 @@ const generateExplanationAndEvidencePackFlow = ai.defineFlow(
     inputSchema: ExplanationAndEvidencePackInputSchema,
     outputSchema: ExplanationAndEvidencePackOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
+  async (input) => {
+    const response = await prompt(input);
+  
+    if (!response?.text) {
+      throw new Error("Explanation flow returned empty response");
+    }
+  
+    const result = JSON.parse(response.text);
+  
+    console.log("Final Explanation Flow Output:", result);
+  
+    return {
+      explanation: result.explanation || "No explanation provided by AI.",
+      evidencePack: {
+        supportingTransactions: result.evidencePack?.supportingTransactions || "No supporting transactions found.",
+        sourceDocuments: result.evidencePack?.sourceDocuments || "No source documents identified.",
+        transformationLogs: result.evidencePack?.transformationLogs || "No transformation logs available.",
+        analystNotes: result.evidencePack?.analystNotes || "",
+        hashSignedBundle: result.evidencePack?.hashSignedBundle || "Pending signing...",
+      },
+    };
+  }  
 );

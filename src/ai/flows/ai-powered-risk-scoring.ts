@@ -34,11 +34,11 @@ const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
   model: 'huggingface-llama3',
   input: {schema: AiPoweredRiskScoringInputSchema},
-  output: {schema: AiPoweredRiskScoringOutputSchema},
+  //output: {schema: AiPoweredRiskScoringOutputSchema},
   prompt: `You are a STRICT JSON risk scoring engine.
 
 IMPORTANT RULES:
-- Output ONLY valid JSON.
+- Return STRICT JSON only.
 - Do NOT include markdown.
 - Do NOT include backticks.
 - Do NOT include explanations outside JSON.
@@ -70,8 +70,22 @@ const aiPoweredRiskScoringFlow = ai.defineFlow(
     inputSchema: AiPoweredRiskScoringInputSchema,
     outputSchema: AiPoweredRiskScoringOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
+  async (input) => {
+    const response = await prompt(input);
+  
+    if (!response?.text) {
+      throw new Error("Risk scoring flow returned empty response");
+    }
+  
+    const result = JSON.parse(response.text);
+  
+    console.log("Final Risk Flow Output:", result);
+  
+    return {
+      riskScore: result.riskScore ?? 0,
+      confidenceScore: result.confidenceScore ?? 0,
+      reasonCodes: result.reasonCodes ?? "",
+      explanation: result.explanation ?? "",
+    };
+  }  
 );

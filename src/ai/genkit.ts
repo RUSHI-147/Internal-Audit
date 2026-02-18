@@ -8,13 +8,14 @@ ai.defineModel(
     apiVersion: 'v2',
   },
   async (request) => {
+    console.log("🚀 HF MODEL CALLED");
     // Llama-3-Instruct expects a plain prompt, not one with roles.
     // We'll take the content of the last message which contains the full prompt.
     const lastMessage = request.messages[request.messages.length - 1];
     const prompt = lastMessage.content[0].text;
 
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct',
+      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
       {
         method: 'POST',
         headers: {
@@ -42,6 +43,7 @@ ai.defineModel(
     }
 
     const data = await response.json();
+    console.log("HF Raw Data",data);
 
     if (data.error) {
         throw new Error(`Hugging Face API Error: ${data.error}`);
@@ -51,6 +53,8 @@ ai.defineModel(
       Array.isArray(data) && data[0]?.generated_text
         ? data[0].generated_text
         : JSON.stringify(data);
+    
+    console.log("HF Generated Text",text)
 
     // The response from instruct models on HF may include the original prompt
     // or other conversational text. We need to robustly extract the JSON object.
