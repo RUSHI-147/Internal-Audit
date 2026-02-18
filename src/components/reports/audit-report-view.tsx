@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useAudit } from '@/contexts/AuditContext';
 import { Button } from '@/components/ui/button';
 import { mockCurrentUser } from '@/lib/data';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,6 +17,8 @@ import { Badge } from '../ui/badge';
 import { internalAuditTemplateV1 } from '@/lib/audit_template';
 import { accounting_standards } from '@/lib/accounting_standards';
 import { Anomaly, UploadedDoc } from '@/lib/types';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 type AuditReportViewProps = {
   template: typeof internalAuditTemplateV1;
@@ -32,7 +35,6 @@ type ReportSectionProps = {
   reportDate: string;
 };
 
-// This helper component renders the content for each section based on its ID and type
 const ReportSection = ({
   section,
   confirmedFindings,
@@ -267,6 +269,9 @@ const ReportSection = ({
 
 export function AuditReportView({ template, standards }: AuditReportViewProps) {
   const { findings, uploadedDocs } = useAudit();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
   const confirmedFindings = findings.filter((f) => f.status === 'Confirmed');
   const dismissedFindings = findings.filter((f) => f.status === 'Dismissed');
 
@@ -288,8 +293,51 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
     ? 'Moderate'
     : 'Low';
 
-  const handleDownload = () => {
-    window.print();
+  const handleDownload = async () => {
+    setIsGenerating(true);
+    toast({
+      title: "Generating Report",
+      description: "Preparing your audit report for download...",
+    });
+
+    try {
+      // @ts-ignore
+      const html2pdf = (await import('html2pdf.js')).default;
+      const element = document.getElementById('report-content');
+      
+      if (!element) {
+        throw new Error("Report element not found");
+      }
+
+      const opt = {
+        margin: [10, 10],
+        filename: `Internal_Audit_Report_${companyDetails.name.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          letterRendering: true,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      
+      toast({
+        title: "Download Complete",
+        description: "Your audit report has been saved successfully.",
+      });
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "We couldn't generate the PDF. Please try again or use the browser print option (Ctrl+P).",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -298,16 +346,20 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
         <h1 className="text-2xl font-bold font-headline">
           Internal Audit Report Preview
         </h1>
-        <Button onClick={handleDownload}>
-          <Download className="mr-2 h-4 w-4" />
-          Download as PDF
+        <Button onClick={handleDownload} disabled={isGenerating}>
+          {isGenerating ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          {isGenerating ? "Preparing PDF..." : "Download as PDF"}
         </Button>
       </div>
 
-      <div className="bg-white p-8 md:p-12 rounded-lg shadow-lg print-container">
+      <div id="report-content" className="bg-white p-8 md:p-12 rounded-lg shadow-lg print-container">
         {/* Cover Page */}
         <div className="report-page text-center">
-          <div className="flex flex-col justify-center items-center h-full">
+          <div className="flex flex-col justify-center items-center h-full min-h-[800px]">
             <h1 className="text-4xl font-bold font-headline text-gray-800">
               {template.template_name}
             </h1>
@@ -322,7 +374,7 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
                 <strong>Report Date:</strong> {reportDate}
               </p>
             </div>
-            <div className="absolute bottom-12 text-sm text-gray-500">
+            <div className="mt-auto pt-12 text-sm text-gray-500">
               <p className="font-bold">CONFIDENTIAL</p>
               <p>
                 This document is intended solely for the use of the management
@@ -335,7 +387,7 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
         {/* Report Body */}
         <div className="report-body space-y-12">
           {template.sections.map((section) => (
-            <section key={section.id} className="report-page">
+            <section key={section.id} className="report-page mt-8 pt-8 border-t first:border-t-0 first:mt-0 first:pt-0">
               <h2 className="report-section-header">{section.title}</h2>
               <ReportSection
                 section={section}
