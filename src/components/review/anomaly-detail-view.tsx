@@ -2,7 +2,7 @@
 
 import { getRiskScore, getExplanation } from '@/app/actions';
 import { Anomaly, AnomalyStatus } from '@/lib/types';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -48,6 +48,9 @@ export function AnomalyDetailView({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Use refs to track if a fetch is already in flight or completed for this ID
+  const fetchInProgress = useRef<string | null>(null);
+
   useEffect(() => {
     if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
       setDecision(anomaly.status);
@@ -61,45 +64,57 @@ export function AnomalyDetailView({
   const stableDetailsString = useMemo(() => JSON.stringify(anomaly.details), [anomaly.details]);
 
   useEffect(() => {
-    // Only fetch if data is missing
-    if (anomaly.aiExplanation && anomaly.aiRiskScore) return;
+    // If both are already loaded, or if we are already fetching this specific anomaly, skip
+    if ((anomaly.aiExplanation && anomaly.aiRiskScore) || fetchInProgress.current === anomaly.id) {
+      return;
+    }
 
     const fetchAiData = async () => {
+      fetchInProgress.current = anomaly.id;
       setIsAiLoading(true);
+      
       try {
-        // Fetch missing data pieces independently
-        const riskPromise = !anomaly.aiRiskScore ? getRiskScore({
-          anomalyDescription: anomaly.description,
-          riskParameters: anomaly.details.violatedPatterns.join(', '),
-          confidenceInterval: '95%',
-        }) : Promise.resolve(anomaly.aiRiskScore);
+        const riskParams = anomaly.details.violatedPatterns.join(', ');
+        
+        // Fetch independently but simultaneously
+        const [riskResult, explanationResult] = await Promise.all([
+          !anomaly.aiRiskScore 
+            ? getRiskScore({
+                anomalyDescription: anomaly.description,
+                riskParameters: riskParams,
+                confidenceInterval: '95%',
+              }) 
+            : Promise.resolve(anomaly.aiRiskScore),
+            
+          !anomaly.aiExplanation 
+            ? getExplanation({
+                issueDescription: anomaly.description,
+                violatedPatterns: riskParams,
+                supportingEvidence: anomaly.details.supportingEvidence.join(', '),
+                transformationLogs: anomaly.details.transformationLogs.join(', '),
+                sourceDocuments: anomaly.details.sourceDocuments.join(', '),
+              }) 
+            : Promise.resolve(anomaly.aiExplanation)
+        ]);
 
-        const explanationPromise = !anomaly.aiExplanation ? getExplanation({
-          issueDescription: anomaly.description,
-          violatedPatterns: anomaly.details.violatedPatterns.join(', '),
-          supportingEvidence: anomaly.details.supportingEvidence.join(', '),
-          transformationLogs: anomaly.details.transformationLogs.join(', '),
-          sourceDocuments: anomaly.details.sourceDocuments.join(', '),
-        }) : Promise.resolve(anomaly.aiExplanation);
-
-        const [riskResult, explanationResult] = await Promise.all([riskPromise, explanationPromise]);
-
-        // Update context if we received any new data
+        // Update context only if we actually got something new to avoid unnecessary loops
         if (riskResult || explanationResult) {
           updateFindingAiData(anomaly.id, {
-            riskScore: riskResult || anomaly.aiRiskScore || null,
-            explanation: explanationResult || anomaly.aiExplanation || null,
+            riskScore: riskResult || null,
+            explanation: explanationResult || null,
           });
         }
       } catch (error) {
         console.error('Failed to fetch AI insights:', error);
       } finally {
         setIsAiLoading(false);
+        // We don't clear fetchInProgress immediately to prevent the effect from firing multiple times
+        // while the context update is propagating through the app.
       }
     };
     
     fetchAiData();
-  }, [anomaly.id, anomaly.description, stableDetailsString, anomaly.aiExplanation, anomaly.aiRiskScore, updateFindingAiData]);
+  }, [anomaly.id, anomaly.description, stableDetailsString, updateFindingAiData]);
 
   const hasDecisionBeenMade =
     anomaly.status === 'Confirmed' ||
