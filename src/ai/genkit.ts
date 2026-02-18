@@ -16,7 +16,6 @@ ai.defineModel(
 
     const rawPrompt = lastMessage.content[0].text;
     
-    console.log("HF TOKEN VALUE:", process.env.HF_TOKEN ? "Present" : "Missing");
     if (!process.env.HF_TOKEN) {
       throw new Error("HF_TOKEN environment variable is not set.");
     }
@@ -50,10 +49,10 @@ ai.defineModel(
     }
 
     const data = await response.json();
-    console.log("HF RAW DATA:", data);
+    console.log("HF RAW DATA RECEIVED");
 
     if (!data?.choices?.[0]?.message?.content) {
-      console.error("HF response:", data);
+      console.error("HF response missing content:", data);
       throw new Error("Model returned empty response.");
     }
 
@@ -65,7 +64,7 @@ ai.defineModel(
       text = jsonMatch[0];
     }
     
-    console.log("HF GENERATED TEXT:", text);
+    console.log("HF PROCESSED TEXT READY");
 
     return {
       candidates: [

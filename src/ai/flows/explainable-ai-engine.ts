@@ -35,18 +35,16 @@ const prompt = ai.definePrompt({
   output: {schema: ExplanationAndEvidencePackOutputSchema},
   prompt: `You are a STRICT JSON generator for an internal audit system.
 
-IMPORTANT RULES:
+RULES:
 - Output ONLY valid JSON.
-- Do NOT include markdown.
-- Do NOT include backticks.
-- Do NOT include explanations outside JSON.
-- Do NOT include comments.
-- Do NOT add any text before or after the JSON object.
-- Ensure all fields are present.
-- If information is missing, return empty strings.
+- If info is missing, use an empty string.
+- The evidencePack should link to specific data points.
 
-Generate a JSON object EXACTLY in this format:
+Issue Description: {{{issueDescription}}}
+Violated Patterns: {{{violatedPatterns}}}
+Supporting Evidence: {{{supportingEvidence}}}
 
+Generate a JSON object exactly in this format:
 {
   "explanation": "string",
   "evidencePack": {
@@ -54,21 +52,9 @@ Generate a JSON object EXACTLY in this format:
     "sourceDocuments": "string",
     "transformationLogs": "string",
     "analystNotes": "string",
-    "hashSignedBundle": "to-be-generated-by-server"
+    "hashSignedBundle": "MD5-SUM-PLACEHOLDER"
   }
-}
-
-Now analyze the following:
-
-Issue Description: {{{issueDescription}}}
-Violated Patterns: {{{violatedPatterns}}}
-Supporting Evidence: {{{supportingEvidence}}}
-Transformation Logs: {{{transformationLogs}}}
-Source Documents: {{{sourceDocuments}}}
-Analyst Notes: {{{analystNotes}}}
-
-Return JSON only.
-`,
+}`,
 });
 
 export const explainableAiEngine = ai.defineFlow(
@@ -83,7 +69,7 @@ export const explainableAiEngine = ai.defineFlow(
     console.log("🔥 Explanation Flow Final Output:", result);
     
     return {
-      explanation: result.explanation || "",
+      explanation: result.explanation || "No explanation generated.",
       evidencePack: result.evidencePack || {
         supportingTransactions: "",
         sourceDocuments: "",

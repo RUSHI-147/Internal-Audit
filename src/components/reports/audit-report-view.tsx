@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAudit } from '@/contexts/AuditContext';
@@ -301,27 +300,24 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
     });
 
     try {
+      // Dynamic import to avoid SSR issues and compilation hangs
       // @ts-ignore
-      const html2pdf = (await import('html2pdf.js')).default;
-      const element = document.getElementById('report-content');
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = html2pdfModule.default || html2pdfModule;
       
-      if (!element) {
-        throw new Error("Report element not found");
-      }
+      const element = document.getElementById('report-content');
+      if (!element) throw new Error("Report content element not found.");
 
       const opt = {
-        margin: [10, 10],
+        margin: 10,
         filename: `Internal_Audit_Report_${companyDetails.name.replace(/\s+/g, '_')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          letterRendering: true,
-        },
+        html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
+      // Generate and save the PDF
       await html2pdf().set(opt).from(element).save();
       
       toast({
@@ -333,7 +329,7 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
       toast({
         variant: "destructive",
         title: "Export Failed",
-        description: "We couldn't generate the PDF. Please try again or use the browser print option (Ctrl+P).",
+        description: "Could not generate the PDF. Please try again or use the browser print option.",
       });
     } finally {
       setIsGenerating(false);
@@ -356,9 +352,9 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
         </Button>
       </div>
 
-      <div id="report-content" className="bg-white p-8 md:p-12 rounded-lg shadow-lg print-container">
+      <div id="report-content" className="bg-white p-8 md:p-12 rounded-lg shadow-lg print-container max-w-[210mm] mx-auto overflow-hidden">
         {/* Cover Page */}
-        <div className="report-page text-center">
+        <div className="report-page text-center mb-24">
           <div className="flex flex-col justify-center items-center h-full min-h-[800px]">
             <h1 className="text-4xl font-bold font-headline text-gray-800">
               {template.template_name}

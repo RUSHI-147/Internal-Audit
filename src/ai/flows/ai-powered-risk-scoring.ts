@@ -32,33 +32,19 @@ const prompt = ai.definePrompt({
     }),
   },
   output: {schema: AiPoweredRiskScoringOutputSchema},
-  prompt: `You are a STRICT JSON risk scoring engine.
+  prompt: `You are a STRICT JSON risk scoring engine for an internal audit system.
 
-IMPORTANT RULES:
+RULES:
 - Output ONLY valid JSON.
-- Do NOT include markdown.
-- Do NOT include backticks.
-- Do NOT include explanations outside JSON.
-- Do NOT include comments.
-- Ensure riskScore is a number between 0 and 100.
-- Ensure confidenceScore is a number between 0 and 100.
-- All fields must exist.
-
-Return JSON EXACTLY in this format:
-
-{
-  "riskScore": number,
-  "confidenceScore": number,
-  "reasonCodes": "string",
-  "explanation": "string"
-}
+- Ensure riskScore and confidenceScore are numbers (0-100).
+- reasonCodes should be a comma-separated string of flags.
+- All fields must be present.
 
 Anomaly Description: {{{anomalyDescription}}}
 Risk Parameters: {{{riskParametersJson}}}
 Confidence Interval: {{{confidenceInterval}}}
 
-Return JSON only.
-`,
+Return JSON only.`,
 });
 
 export const aiPoweredRiskScoring = ai.defineFlow(
@@ -70,9 +56,10 @@ export const aiPoweredRiskScoring = ai.defineFlow(
   async (input) => {
     const { output } = await prompt({
       anomalyDescription: input.anomalyDescription,
-      riskParametersJson: JSON.stringify(input.riskParameters),
+      riskParametersJson: JSON.stringify(input.riskParameters || {}),
       confidenceInterval: input.confidenceInterval,
     });
+    
     const result = output || {};
     console.log("🔥 Risk Flow Final Output:", result);
     
