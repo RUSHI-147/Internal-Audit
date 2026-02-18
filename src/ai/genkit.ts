@@ -19,12 +19,13 @@ ai.defineModel(
     // For Mistral-7B-Instruct, wrapping in [INST] tags often improves instruction following
     const promptText = `[INST] ${rawPrompt} [/INST]`;
 
+    console.log("HF TOKEN VALUE:", process.env.HF_TOKEN);
     if (!process.env.HF_TOKEN) {
       throw new Error("HF_TOKEN environment variable is not set.");
     }
 
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+      'https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
       {
         method: 'POST',
         headers: {
