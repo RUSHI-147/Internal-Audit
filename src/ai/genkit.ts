@@ -16,33 +16,29 @@ ai.defineModel(
 
     const rawPrompt = lastMessage.content[0].text;
     
-    // For Mistral-7B-Instruct, wrapping in [INST] tags often improves instruction following
-    const promptText = `[INST] ${rawPrompt} [/INST]`;
-
     console.log("HF TOKEN VALUE:", process.env.HF_TOKEN ? "Present" : "Missing");
     if (!process.env.HF_TOKEN) {
       throw new Error("HF_TOKEN environment variable is not set.");
     }
 
-    // Corrected to use the full router path for serverless inference
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3',
+      "https://api-inference.huggingface.co/v1/chat/completions",
       {
-        method: 'POST',
+        method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: promptText,
-          parameters: {
-            temperature: 0.1,
-            max_new_tokens: 1000,
-            return_full_text: false,
-          },
-          options: {
-            wait_for_model: true,
-          },
+          model: "mistralai/Mistral-7B-Instruct-v0.2",
+          messages: [
+            {
+              role: "user",
+              content: rawPrompt,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 1000,
         }),
       }
     );
@@ -55,11 +51,13 @@ ai.defineModel(
 
     const data = await response.json();
     console.log("HF RAW DATA:", data);
-    
-    let text =
-      Array.isArray(data) && data[0]?.generated_text
-        ? data[0].generated_text
-        : JSON.stringify(data);
+
+    if (!data?.choices?.[0]?.message?.content) {
+      console.error("HF response:", data);
+      throw new Error("Model returned empty response.");
+    }
+
+    let text = data.choices[0].message.content;
     
     // Robust JSON extraction using regex to find the first '{' and last '}'
     const jsonMatch = text.match(/\{[\s\S]*\}/);
