@@ -86,7 +86,7 @@ export function AnomalyDetailView({
   const fetchInProgress = useRef<string | null>(null);
 
   useEffect(() => {
-    // If we have data or a fetch is in flight for this ID, do nothing
+    // If we already have AI data or a fetch is in flight for this ID, do nothing
     if ((explanation !== null && riskScore !== null) || fetchInProgress.current === anomaly.id) {
       return;
     }
@@ -160,6 +160,9 @@ export function AnomalyDetailView({
       setIsSubmitting(false);
     }, 500);
   };
+
+  // Determine which score to display (AI score preferred, then base anomaly score)
+  const displayScore = riskScore !== null ? riskScore : anomaly.riskScore;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -288,18 +291,14 @@ export function AnomalyDetailView({
           <CardContent className="text-center">
             {isAiLoading && riskScore === null ? (
               <Skeleton className="h-32 w-32 rounded-full mx-auto" />
-            ) : riskScore !== null ? (
+            ) : (
               <div 
                 className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary transition-all duration-500" 
                 style={{ 
-                  borderColor: `hsla(var(--primary), ${riskScore / 100})` 
+                  borderColor: `hsl(var(--primary) / ${displayScore / 100})` 
                 }}
               >
-                <span className="text-4xl font-bold">{Math.round(riskScore)}</span>
-              </div>
-            ) : (
-              <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-muted">
-                <span className="text-4xl font-bold">?</span>
+                <span className="text-4xl font-bold">{Math.round(displayScore)}</span>
               </div>
             )}
             {riskScore !== null && (
