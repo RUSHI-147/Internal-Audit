@@ -9,8 +9,6 @@ ai.defineModel(
   },
   async (request) => {
     console.log("🚀 HF MODEL CALLED");
-    // Llama-3-Instruct expects a plain prompt, not one with roles.
-    // We'll take the content of the last message which contains the full prompt.
     const lastMessage = request.messages[request.messages.length - 1];
     const prompt = lastMessage.content[0].text;
 
@@ -25,12 +23,12 @@ ai.defineModel(
         body: JSON.stringify({
           inputs: prompt,
           parameters: {
-            temperature: 0.2,
+            temperature: 0.1,
             max_new_tokens: 1000,
-            return_full_text: false, // Only return the generated text
+            return_full_text: false,
           },
           options: {
-            wait_for_model: true, // Avoid "model is loading" errors
+            wait_for_model: true,
           },
         }),
       }
@@ -43,38 +41,18 @@ ai.defineModel(
     }
 
     const data = await response.json();
-    console.log("HF Raw Data",data);
-
-    if (data.error) {
-        throw new Error(`Hugging Face API Error: ${data.error}`);
-    }
-
+    
     let text =
       Array.isArray(data) && data[0]?.generated_text
         ? data[0].generated_text
         : JSON.stringify(data);
     
-    console.log("HF Generated Text",text)
-
-    // The response from instruct models on HF may include the original prompt
-    // or other conversational text. We need to robustly extract the JSON object.
+    // Extract JSON object if the model included extra text
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}');
 
     if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      const potentialJson = text.substring(jsonStart, jsonEnd + 1);
-      try {
-        // Validate that it's actually parsable JSON
-        JSON.parse(potentialJson);
-        text = potentialJson;
-      } catch (e) {
-        console.error("Could not parse extracted JSON from model response:", potentialJson, e);
-        throw new Error("Model returned a string containing an invalid JSON object.");
-      }
-    } else {
-      // If we can't find a JSON object, the call has failed from our perspective.
-      console.error("Could not find a valid JSON object in the model response:", text);
-      throw new Error("Model did not return a parsable JSON object.");
+      text = text.substring(jsonStart, jsonEnd + 1);
     }
 
     return {

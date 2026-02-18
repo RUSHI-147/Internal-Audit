@@ -3,8 +3,6 @@
  * @fileOverview AI Explanations and Evidence Pack Generation.
  *
  * - generateExplanationAndEvidencePack - A function that generates explanations and evidence packs for flagged audit issues.
- * - ExplanationAndEvidencePackInput - The input type for the generateExplanationAndEvidencePack function.
- * - ExplanationAndEvidencePackOutput - The return type for the generateExplanationAndEvidencePack function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -21,7 +19,7 @@ const ExplanationAndEvidencePackInputSchema = z.object({
 export type ExplanationAndEvidencePackInput = z.infer<typeof ExplanationAndEvidencePackInputSchema>;
 
 const ExplanationAndEvidencePackOutputSchema = z.object({
-  explanation: z.string().describe('A human-readable explanation of why the issue was flagged, the patterns violated, and the supporting evidence.'),
+  explanation: z.string().describe('A human-readable explanation of why the issue was flagged.'),
   evidencePack: z.object({
     supportingTransactions: z.string().describe('Supporting transactions related to the issue.'),
     sourceDocuments: z.string().describe('Source documents related to the issue.'),
@@ -40,16 +38,14 @@ const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
   model: 'huggingface-llama3',
   input: {schema: ExplanationAndEvidencePackInputSchema},
-  //output: {schema: ExplanationAndEvidencePackOutputSchema},
   prompt: `You are a STRICT JSON generator for an internal audit system.
 
 IMPORTANT RULES:
-- Return STRICT JSON only.
+- Output ONLY valid JSON.
 - Do NOT include markdown.
 - Do NOT include backticks.
 - Do NOT include explanations outside JSON.
 - Do NOT include comments.
-- Do NOT add any text before or after the JSON object.
 - Ensure all fields are present.
 - If information is missing, return empty strings.
 
@@ -76,14 +72,7 @@ Source Documents: {{{sourceDocuments}}}
 Analyst Notes: {{{analystNotes}}}
 
 Return JSON only.
-`,config: {
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-    ],
-  },
+`,
 });
 
 const generateExplanationAndEvidencePackFlow = ai.defineFlow(
@@ -99,19 +88,21 @@ const generateExplanationAndEvidencePackFlow = ai.defineFlow(
       throw new Error("Explanation flow returned empty response");
     }
   
-    const result = JSON.parse(response.text);
-  
-    console.log("Final Explanation Flow Output:", result);
-  
-    return {
-      explanation: result.explanation || "No explanation provided by AI.",
-      evidencePack: {
-        supportingTransactions: result.evidencePack?.supportingTransactions || "No supporting transactions found.",
-        sourceDocuments: result.evidencePack?.sourceDocuments || "No source documents identified.",
-        transformationLogs: result.evidencePack?.transformationLogs || "No transformation logs available.",
-        analystNotes: result.evidencePack?.analystNotes || "",
-        hashSignedBundle: result.evidencePack?.hashSignedBundle || "Pending signing...",
-      },
-    };
+    try {
+      const result = JSON.parse(response.text);
+      return {
+        explanation: result.explanation || "No explanation provided by AI.",
+        evidencePack: {
+          supportingTransactions: result.evidencePack?.supportingTransactions || "No supporting transactions found.",
+          sourceDocuments: result.evidencePack?.sourceDocuments || "No source documents identified.",
+          transformationLogs: result.evidencePack?.transformationLogs || "No transformation logs available.",
+          analystNotes: result.evidencePack?.analystNotes || "",
+          hashSignedBundle: result.evidencePack?.hashSignedBundle || "Pending signing...",
+        },
+      };
+    } catch (e) {
+      console.error("Failed to parse AI explanation JSON:", response.text);
+      throw new Error("AI returned invalid JSON structure.");
+    }
   }  
 );

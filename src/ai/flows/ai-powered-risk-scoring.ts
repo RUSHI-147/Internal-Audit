@@ -1,11 +1,7 @@
 'use server';
 
 /**
- * @fileOverview An AI-powered risk scoring flow that assigns risk scores to flagged anomalies based on configurable risk parameters and confidence intervals.
- *
- * - aiPoweredRiskScoring - A function that handles the risk scoring process.
- * - AiPoweredRiskScoringInput - The input type for the aiPoweredRiskScoring function.
- * - AiPoweredRiskScoringOutput - The return type for the aiPoweredRiskScoring function.
+ * @fileOverview An AI-powered risk scoring flow.
  */
 
 import {ai} from '@/ai/genkit';
@@ -13,7 +9,7 @@ import {z} from 'genkit';
 
 const AiPoweredRiskScoringInputSchema = z.object({
   anomalyDescription: z.string().describe('Description of the anomaly detected.'),
-  riskParameters: z.string().describe('Configurable risk parameters (e.g., threshold breaches, vendor concentration).'),
+  riskParameters: z.string().describe('Configurable risk parameters.'),
   confidenceInterval: z.string().describe('Confidence interval for the anomaly detection.'),
 });
 export type AiPoweredRiskScoringInput = z.infer<typeof AiPoweredRiskScoringInputSchema>;
@@ -34,11 +30,10 @@ const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
   model: 'huggingface-llama3',
   input: {schema: AiPoweredRiskScoringInputSchema},
-  //output: {schema: AiPoweredRiskScoringOutputSchema},
   prompt: `You are a STRICT JSON risk scoring engine.
 
 IMPORTANT RULES:
-- Return STRICT JSON only.
+- Output ONLY valid JSON.
 - Do NOT include markdown.
 - Do NOT include backticks.
 - Do NOT include explanations outside JSON.
@@ -77,15 +72,17 @@ const aiPoweredRiskScoringFlow = ai.defineFlow(
       throw new Error("Risk scoring flow returned empty response");
     }
   
-    const result = JSON.parse(response.text);
-  
-    console.log("Final Risk Flow Output:", result);
-  
-    return {
-      riskScore: result.riskScore ?? 0,
-      confidenceScore: result.confidenceScore ?? 0,
-      reasonCodes: result.reasonCodes ?? "",
-      explanation: result.explanation ?? "",
-    };
+    try {
+      const result = JSON.parse(response.text);
+      return {
+        riskScore: Number(result.riskScore) || 0,
+        confidenceScore: Number(result.confidenceScore) || 0,
+        reasonCodes: result.reasonCodes || "No reason codes provided.",
+        explanation: result.explanation || "No explanation provided.",
+      };
+    } catch (e) {
+      console.error("Failed to parse Risk Score AI JSON:", response.text);
+      throw new Error("AI returned invalid risk score JSON.");
+    }
   }  
 );
