@@ -9,9 +9,9 @@ export async function callLLM(prompt: string): Promise<AuditAIResponse> {
     throw new Error("HF_TOKEN environment variable is not set.");
   }
 
-  // Updated to use the recommended router endpoint for v0.3
+  // Corrected to use the full router path for serverless inference
   const response = await fetch(
-    "https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3",
+    "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3",
     {
       method: "POST",
       headers: {
