@@ -14,10 +14,10 @@ const AiPoweredRiskScoringInputSchema = z.object({
 export type AiPoweredRiskScoringInput = z.infer<typeof AiPoweredRiskScoringInputSchema>;
 
 const AiPoweredRiskScoringOutputSchema = z.object({
-  riskScore: z.number(),
-  confidenceScore: z.number(),
-  reasonCodes: z.string(),
-  explanation: z.string(),
+  riskScore: z.number().optional().catch(0),
+  confidenceScore: z.number().optional().catch(0),
+  reasonCodes: z.string().optional().catch('N/A'),
+  explanation: z.string().optional().catch('No explanation provided.'),
 });
 export type AiPoweredRiskScoringOutput = z.infer<typeof AiPoweredRiskScoringOutputSchema>;
 
@@ -38,7 +38,7 @@ RULES:
 - Output ONLY valid JSON.
 - Ensure riskScore and confidenceScore are numbers (0-100).
 - reasonCodes should be a comma-separated string of flags.
-- All fields must be present.
+- All fields (riskScore, confidenceScore, reasonCodes, explanation) MUST be present.
 
 Anomaly Description: {{{anomalyDescription}}}
 Risk Parameters: {{{riskParametersJson}}}
@@ -60,7 +60,13 @@ export const aiPoweredRiskScoring = ai.defineFlow(
       confidenceInterval: input.confidenceInterval,
     });
     
-    const result = output || {};
+    const result = output || {
+      riskScore: 0,
+      confidenceScore: 0,
+      reasonCodes: "N/A",
+      explanation: "No explanation provided."
+    };
+    
     console.log("🔥 Risk Flow Final Output:", result);
     
     return {

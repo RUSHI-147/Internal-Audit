@@ -19,11 +19,17 @@ export type ExplanationAndEvidencePackInput = z.infer<typeof ExplanationAndEvide
 const ExplanationAndEvidencePackOutputSchema = z.object({
   explanation: z.string().describe('A human-readable explanation.'),
   evidencePack: z.object({
-    supportingTransactions: z.string(),
-    sourceDocuments: z.string(),
-    transformationLogs: z.string(),
-    analystNotes: z.string().optional(),
-    hashSignedBundle: z.string(),
+    supportingTransactions: z.string().optional().catch(''),
+    sourceDocuments: z.string().optional().catch(''),
+    transformationLogs: z.string().optional().catch(''),
+    analystNotes: z.string().optional().catch(''),
+    hashSignedBundle: z.string().optional().catch(''),
+  }).catch({
+    supportingTransactions: '',
+    sourceDocuments: '',
+    transformationLogs: '',
+    analystNotes: '',
+    hashSignedBundle: ''
   }),
 });
 export type ExplanationAndEvidencePackOutput = z.infer<typeof ExplanationAndEvidencePackOutputSchema>;
@@ -37,8 +43,8 @@ const prompt = ai.definePrompt({
 
 RULES:
 - Output ONLY valid JSON.
-- If info is missing, use an empty string.
-- The evidencePack should link to specific data points.
+- If info is missing, use an empty string. DO NOT omit any fields.
+- The evidencePack MUST contain all keys: supportingTransactions, sourceDocuments, transformationLogs, analystNotes, hashSignedBundle.
 
 Issue Description: {{{issueDescription}}}
 Violated Patterns: {{{violatedPatterns}}}
@@ -46,12 +52,12 @@ Supporting Evidence: {{{supportingEvidence}}}
 
 Generate a JSON object exactly in this format:
 {
-  "explanation": "string",
+  "explanation": "Detailed explanation string",
   "evidencePack": {
-    "supportingTransactions": "string",
-    "sourceDocuments": "string",
-    "transformationLogs": "string",
-    "analystNotes": "string",
+    "supportingTransactions": "Specific transaction IDs or data",
+    "sourceDocuments": "Names of files or docs",
+    "transformationLogs": "Summary of data movements",
+    "analystNotes": "Any specific audit notes",
     "hashSignedBundle": "MD5-SUM-PLACEHOLDER"
   }
 }`,
@@ -65,17 +71,27 @@ export const explainableAiEngine = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    const result = output || {};
-    console.log("🔥 Explanation Flow Final Output:", result);
-    
-    return {
-      explanation: result.explanation || "No explanation generated.",
-      evidencePack: result.evidencePack || {
+    const result = output || {
+      explanation: "No explanation generated.",
+      evidencePack: {
         supportingTransactions: "",
         sourceDocuments: "",
         transformationLogs: "",
         analystNotes: "",
         hashSignedBundle: ""
+      }
+    };
+    
+    console.log("🔥 Explanation Flow Final Output:", result);
+    
+    return {
+      explanation: result.explanation || "No explanation generated.",
+      evidencePack: {
+        supportingTransactions: result.evidencePack?.supportingTransactions || "",
+        sourceDocuments: result.evidencePack?.sourceDocuments || "",
+        transformationLogs: result.evidencePack?.transformationLogs || "",
+        analystNotes: result.evidencePack?.analystNotes || "",
+        hashSignedBundle: result.evidencePack?.hashSignedBundle || ""
       }
     };
   }
