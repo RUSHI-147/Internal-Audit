@@ -85,7 +85,7 @@ export type IntelligentAnomalyDetectionOutput = z.infer<typeof IntelligentAnomal
 
 const anomalyDetectionPrompt = ai.definePrompt({
   name: 'anomalyDetectionPrompt',
-  model: 'mistral-7b-instruct-v0.2',
+  model: 'mistral-7b-instruct-v0.3',
   input: { schema: IntelligentAnomalyDetectionInputSchema },
   output: { schema: IntelligentAnomalyDetectionOutputSchema },
   prompt: `You are an AI Internal Audit Copilot responsible for detecting anomalies in financial data.

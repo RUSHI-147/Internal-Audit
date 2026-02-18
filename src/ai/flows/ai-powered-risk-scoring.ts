@@ -23,7 +23,7 @@ export type AiPoweredRiskScoringOutput = z.infer<typeof AiPoweredRiskScoringOutp
 
 const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
-  model: 'mistral-7b-instruct-v0.2',
+  model: 'mistral-7b-instruct-v0.3',
   input: {schema: AiPoweredRiskScoringInputSchema},
   output: {schema: AiPoweredRiskScoringOutputSchema},
   prompt: `You are a STRICT JSON risk scoring engine.

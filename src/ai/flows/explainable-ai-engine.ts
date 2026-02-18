@@ -30,7 +30,7 @@ export type ExplanationAndEvidencePackOutput = z.infer<typeof ExplanationAndEvid
 
 const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
-  model: 'mistral-7b-instruct-v0.2',
+  model: 'mistral-7b-instruct-v0.3',
   input: {schema: ExplanationAndEvidencePackInputSchema},
   output: {schema: ExplanationAndEvidencePackOutputSchema},
   prompt: `You are a STRICT JSON generator for an internal audit system.
