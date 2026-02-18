@@ -4,7 +4,7 @@ export const ai = genkit({});
 
 ai.defineModel(
   {
-    name: 'mistral-7b-instruct-v0.2',
+    name: 'mistral-7b-instruct-v0.3',
     apiVersion: 'v2',
   },
   async (request) => {
@@ -19,13 +19,14 @@ ai.defineModel(
     // For Mistral-7B-Instruct, wrapping in [INST] tags often improves instruction following
     const promptText = `[INST] ${rawPrompt} [/INST]`;
 
-    console.log("HF TOKEN VALUE:", process.env.HF_TOKEN);
+    console.log("HF TOKEN VALUE:", process.env.HF_TOKEN ? "Present" : "Missing");
     if (!process.env.HF_TOKEN) {
       throw new Error("HF_TOKEN environment variable is not set.");
     }
 
+    // Updated to use the recommended router endpoint for v0.3
     const response = await fetch(
-      'https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+      'https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
       {
         method: 'POST',
         headers: {

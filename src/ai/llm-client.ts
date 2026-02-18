@@ -5,8 +5,13 @@ export interface AuditAIResponse {
 }
 
 export async function callLLM(prompt: string): Promise<AuditAIResponse> {
+  if (!process.env.HF_TOKEN) {
+    throw new Error("HF_TOKEN environment variable is not set.");
+  }
+
+  // Updated to use the recommended router endpoint for v0.3
   const response = await fetch(
-    "https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+    "https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3",
     {
       method: "POST",
       headers: {
@@ -20,6 +25,9 @@ export async function callLLM(prompt: string): Promise<AuditAIResponse> {
           max_new_tokens: 600,
           return_full_text: false,
         },
+        options: {
+          wait_for_model: true,
+        },
       }),
     }
   );
@@ -31,11 +39,12 @@ export async function callLLM(prompt: string): Promise<AuditAIResponse> {
 
   const data = await response.json();
 
-  if (!Array.isArray(data) || !data[0]?.generated_text) {
-    throw new Error("Invalid response format from HuggingFace.");
+  let generatedText = "";
+  if (Array.isArray(data) && data[0]?.generated_text) {
+    generatedText = data[0].generated_text;
+  } else {
+    generatedText = JSON.stringify(data);
   }
-
-  const generatedText: string = data[0].generated_text;
 
   // Extract JSON from response
   const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
