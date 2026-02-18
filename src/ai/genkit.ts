@@ -8,6 +8,7 @@ ai.defineModel(
     apiVersion: 'v2',
   },
   async (request) => {
+    console.log("🚀 HF MODEL CALLED");
     const lastMessage = request.messages[request.messages.length - 1];
     if (!lastMessage || !lastMessage.content[0]) {
       throw new Error("No prompt provided to Mistral model.");
@@ -51,6 +52,7 @@ ai.defineModel(
     }
 
     const data = await response.json();
+    console.log("HF RAW DATA:", data);
     
     let text =
       Array.isArray(data) && data[0]?.generated_text
@@ -61,11 +63,9 @@ ai.defineModel(
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       text = jsonMatch[0];
-    } else {
-      // If no JSON object is found, we pass back the text as is, 
-      // but log a warning as it might fail schema validation
-      console.warn("No JSON object found in Mistral response text.");
     }
+    
+    console.log("HF GENERATED TEXT:", text);
 
     return {
       candidates: [

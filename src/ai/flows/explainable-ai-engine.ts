@@ -1,8 +1,6 @@
 'use server';
 /**
  * @fileOverview AI Explanations and Evidence Pack Generation.
- *
- * - generateExplanationAndEvidencePack - A function that generates explanations and evidence packs for flagged audit issues.
  */
 
 import {ai} from '@/ai/genkit';
@@ -11,28 +9,24 @@ import {z} from 'genkit';
 const ExplanationAndEvidencePackInputSchema = z.object({
   issueDescription: z.string().describe('A description of the flagged audit issue.'),
   violatedPatterns: z.string().describe('The specific patterns or rules violated.'),
-  supportingEvidence: z.string().describe('The evidence supporting the flagged issue, such as transaction details and document snippets.'),
-  transformationLogs: z.string().describe('Logs from the data transformation process, providing context to the issue'),
+  supportingEvidence: z.string().describe('The evidence supporting the flagged issue.'),
+  transformationLogs: z.string().describe('Logs from the data transformation process.'),
   sourceDocuments: z.string().describe('Source documents related to the issue.'),
-  analystNotes: z.string().optional().describe('Optional notes from the analyst reviewing the issue.'),
+  analystNotes: z.string().optional().describe('Optional notes from the analyst.'),
 });
 export type ExplanationAndEvidencePackInput = z.infer<typeof ExplanationAndEvidencePackInputSchema>;
 
 const ExplanationAndEvidencePackOutputSchema = z.object({
-  explanation: z.string().describe('A human-readable explanation of why the issue was flagged.'),
+  explanation: z.string().describe('A human-readable explanation.'),
   evidencePack: z.object({
-    supportingTransactions: z.string().describe('Supporting transactions related to the issue.'),
-    sourceDocuments: z.string().describe('Source documents related to the issue.'),
-    transformationLogs: z.string().describe('Transformation logs for the issue.'),
-    analystNotes: z.string().optional().describe('Analyst notes on the issue, if available.'),
-    hashSignedBundle: z.string().describe('Immutable hash-signed bundle of the evidence pack.'),
-  }).describe('An auto-assembled evidence pack containing supporting information.'),
+    supportingTransactions: z.string(),
+    sourceDocuments: z.string(),
+    transformationLogs: z.string(),
+    analystNotes: z.string().optional(),
+    hashSignedBundle: z.string(),
+  }),
 });
 export type ExplanationAndEvidencePackOutput = z.infer<typeof ExplanationAndEvidencePackOutputSchema>;
-
-export async function generateExplanationAndEvidencePack(input: ExplanationAndEvidencePackInput): Promise<ExplanationAndEvidencePackOutput> {
-  return generateExplanationAndEvidencePackFlow(input);
-}
 
 const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
@@ -77,27 +71,26 @@ Return JSON only.
 `,
 });
 
-const generateExplanationAndEvidencePackFlow = ai.defineFlow(
+export const explainableAiEngine = ai.defineFlow(
   {
-    name: 'generateExplanationAndEvidencePackFlow',
+    name: 'explainableAiEngine',
     inputSchema: ExplanationAndEvidencePackInputSchema,
     outputSchema: ExplanationAndEvidencePackOutputSchema,
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output) {
-      throw new Error("AI failed to generate a valid explanation output.");
-    }
+    const result = output || {};
+    console.log("🔥 Explanation Flow Final Output:", result);
     
     return {
-      explanation: output.explanation || "No explanation provided by AI.",
-      evidencePack: {
-        supportingTransactions: output.evidencePack?.supportingTransactions || "No supporting transactions found.",
-        sourceDocuments: output.evidencePack?.sourceDocuments || "No source documents identified.",
-        transformationLogs: output.evidencePack?.transformationLogs || "No transformation logs available.",
-        analystNotes: output.evidencePack?.analystNotes || "",
-        hashSignedBundle: output.evidencePack?.hashSignedBundle || "Pending signing...",
-      },
+      explanation: result.explanation || "",
+      evidencePack: result.evidencePack || {
+        supportingTransactions: "",
+        sourceDocuments: "",
+        transformationLogs: "",
+        analystNotes: "",
+        hashSignedBundle: ""
+      }
     };
-  }  
+  }
 );

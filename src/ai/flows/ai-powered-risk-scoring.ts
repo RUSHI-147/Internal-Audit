@@ -1,5 +1,4 @@
 'use server';
-
 /**
  * @fileOverview An AI-powered risk scoring flow.
  */
@@ -8,23 +7,19 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AiPoweredRiskScoringInputSchema = z.object({
-  anomalyDescription: z.string().describe('Description of the anomaly detected.'),
-  riskParameters: z.string().describe('Configurable risk parameters.'),
-  confidenceInterval: z.string().describe('Confidence interval for the anomaly detection.'),
+  anomalyDescription: z.string().describe('Description of the anomaly.'),
+  riskParameters: z.any().describe('Configurable risk parameters.'),
+  confidenceInterval: z.string().describe('Confidence interval.'),
 });
 export type AiPoweredRiskScoringInput = z.infer<typeof AiPoweredRiskScoringInputSchema>;
 
 const AiPoweredRiskScoringOutputSchema = z.object({
-  riskScore: z.number().describe('The risk score assigned to the anomaly (0-100).'),
-  confidenceScore: z.number().describe('The confidence score of the risk assessment.'),
-  reasonCodes: z.string().describe('Reason codes explaining the risk score assignment.'),
-  explanation: z.string().describe('Human-readable explanation of the risk scoring.'),
+  riskScore: z.number(),
+  confidenceScore: z.number(),
+  reasonCodes: z.string(),
+  explanation: z.string(),
 });
 export type AiPoweredRiskScoringOutput = z.infer<typeof AiPoweredRiskScoringOutputSchema>;
-
-export async function aiPoweredRiskScoring(input: AiPoweredRiskScoringInput): Promise<AiPoweredRiskScoringOutput> {
-  return aiPoweredRiskScoringFlow(input);
-}
 
 const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
@@ -53,30 +48,29 @@ Return JSON EXACTLY in this format:
 }
 
 Anomaly Description: {{{anomalyDescription}}}
-Risk Parameters: {{{riskParameters}}}
+Risk Parameters: {{{JSON.stringify riskParameters}}}
 Confidence Interval: {{{confidenceInterval}}}
 
 Return JSON only.
 `,
 });
 
-const aiPoweredRiskScoringFlow = ai.defineFlow(
+export const aiPoweredRiskScoring = ai.defineFlow(
   {
-    name: 'aiPoweredRiskScoringFlow',
+    name: 'aiPoweredRiskScoring',
     inputSchema: AiPoweredRiskScoringInputSchema,
     outputSchema: AiPoweredRiskScoringOutputSchema,
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output) {
-      throw new Error("AI failed to generate a valid risk score output.");
-    }
-
+    const result = output || {};
+    console.log("🔥 Risk Flow Final Output:", result);
+    
     return {
-      riskScore: Number(output.riskScore) || 0,
-      confidenceScore: Number(output.confidenceScore) || 0,
-      reasonCodes: output.reasonCodes || "No reason codes provided.",
-      explanation: output.explanation || "No explanation provided.",
+      riskScore: result.riskScore ?? 0,
+      confidenceScore: result.confidenceScore ?? 0,
+      reasonCodes: result.reasonCodes ?? "",
+      explanation: result.explanation ?? ""
     };
-  }  
+  }
 );

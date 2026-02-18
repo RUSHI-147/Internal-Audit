@@ -1,16 +1,13 @@
 'use client';
 
-import { getRiskScore, getExplanation } from '@/app/actions';
-import { Anomaly, AnomalyStatus } from '@/lib/types';
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Anomaly, AnomalyStatus, EvidencePack } from '@/lib/types';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Skeleton } from '../ui/skeleton';
@@ -30,6 +27,8 @@ import { Label } from '../ui/label';
 import { useAudit } from '@/contexts/AuditContext';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { explainableAiEngine } from '@/ai/flows/explainable-ai-engine';
+import { aiPoweredRiskScoring } from '@/ai/flows/ai-powered-risk-scoring';
 
 export function AnomalyDetailView({
   anomaly: anomalyProp,
@@ -43,15 +42,38 @@ export function AnomalyDetailView({
 
   const anomaly = findings.find((f) => f.id === anomalyProp.id) ?? anomalyProp;
 
+  // Local state for AI data
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [evidencePack, setEvidencePack] = useState<EvidencePack | null>(null);
+  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+  const [reasonCodes, setReasonCodes] = useState<string | null>(null);
+
   const [decision, setDecision] = useState<AnomalyStatus | ''>('');
   const [justification, setJustification] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use refs to track if a fetch is already in flight or completed for this ID
-  const fetchInProgress = useRef<string | null>(null);
-
+  // Sync local state from context on mount/id change
   useEffect(() => {
+    if (anomaly.aiExplanation) {
+      setExplanation(anomaly.aiExplanation.explanation);
+      setEvidencePack(anomaly.aiExplanation.evidencePack);
+    } else {
+      setExplanation(null);
+      setEvidencePack(null);
+    }
+    
+    if (anomaly.aiRiskScore) {
+      setRiskScore(anomaly.aiRiskScore.riskScore);
+      setConfidenceScore(anomaly.aiRiskScore.confidenceScore);
+      setReasonCodes(anomaly.aiRiskScore.reasonCodes);
+    } else {
+      setRiskScore(null);
+      setConfidenceScore(null);
+      setReasonCodes(null);
+    }
+
     if (anomaly.status !== 'AI Flagged' && anomaly.auditorComment) {
       setDecision(anomaly.status);
       setJustification(anomaly.auditorComment);
@@ -59,62 +81,60 @@ export function AnomalyDetailView({
       setDecision('');
       setJustification('');
     }
-  }, [anomaly.id, anomaly.status, anomaly.auditorComment]);
+  }, [anomaly.id, anomaly.status, anomaly.auditorComment, anomaly.aiExplanation, anomaly.aiRiskScore]);
 
-  const stableDetailsString = useMemo(() => JSON.stringify(anomaly.details), [anomaly.details]);
+  const fetchInProgress = useRef<string | null>(null);
 
   useEffect(() => {
-    // If both are already loaded, or if we are already fetching this specific anomaly, skip
-    if ((anomaly.aiExplanation && anomaly.aiRiskScore) || fetchInProgress.current === anomaly.id) {
+    // If we have data or a fetch is in flight for this ID, do nothing
+    if ((explanation !== null && riskScore !== null) || fetchInProgress.current === anomaly.id) {
       return;
     }
 
     const fetchAiData = async () => {
+      console.log("🚀 fetchAiData CALLED for anomaly:", anomaly.id);
       fetchInProgress.current = anomaly.id;
       setIsAiLoading(true);
       
       try {
-        const riskParams = anomaly.details.violatedPatterns.join(', ');
-        
-        // Fetch independently but simultaneously
-        const [riskResult, explanationResult] = await Promise.all([
-          !anomaly.aiRiskScore 
-            ? getRiskScore({
-                anomalyDescription: anomaly.description,
-                riskParameters: riskParams,
-                confidenceInterval: '95%',
-              }) 
-            : Promise.resolve(anomaly.aiRiskScore),
-            
-          !anomaly.aiExplanation 
-            ? getExplanation({
-                issueDescription: anomaly.description,
-                violatedPatterns: riskParams,
-                supportingEvidence: anomaly.details.supportingEvidence.join(', '),
-                transformationLogs: anomaly.details.transformationLogs.join(', '),
-                sourceDocuments: anomaly.details.sourceDocuments.join(', '),
-              }) 
-            : Promise.resolve(anomaly.aiExplanation)
+        const [explanationData, riskData] = await Promise.all([
+          explainableAiEngine({
+            issueDescription: anomaly.description,
+            violatedPatterns: anomaly.details.violatedPatterns?.join(', ') || "",
+            supportingEvidence: anomaly.details.supportingEvidence?.join(', ') || "",
+            transformationLogs: "",
+            sourceDocuments: "",
+            analystNotes: ""
+          }),
+          aiPoweredRiskScoring({
+            anomalyDescription: anomaly.description,
+            riskParameters: {},
+            confidenceInterval: "medium"
+          })
         ]);
 
-        // Update context only if we actually got something new to avoid unnecessary loops
-        if (riskResult || explanationResult) {
-          updateFindingAiData(anomaly.id, {
-            riskScore: riskResult || null,
-            explanation: explanationResult || null,
-          });
-        }
+        // Update local state
+        setExplanation(explanationData.explanation);
+        setEvidencePack(explanationData.evidencePack);
+        setRiskScore(riskData.riskScore);
+        setConfidenceScore(riskData.confidenceScore);
+        setReasonCodes(riskData.reasonCodes);
+
+        // Persist to context
+        updateFindingAiData(anomaly.id, {
+          riskScore: riskData,
+          explanation: explanationData,
+        });
+
       } catch (error) {
         console.error('Failed to fetch AI insights:', error);
       } finally {
         setIsAiLoading(false);
-        // We don't clear fetchInProgress immediately to prevent the effect from firing multiple times
-        // while the context update is propagating through the app.
       }
     };
     
     fetchAiData();
-  }, [anomaly.id, anomaly.description, stableDetailsString, updateFindingAiData]);
+  }, [anomaly.id]);
 
   const hasDecisionBeenMade =
     anomaly.status === 'Confirmed' ||
@@ -141,9 +161,6 @@ export function AnomalyDetailView({
     }, 500);
   };
 
-  const isRiskLoading = isAiLoading && !anomaly.aiRiskScore;
-  const isExplanationLoading = isAiLoading && !anomaly.aiExplanation;
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
@@ -152,10 +169,10 @@ export function AnomalyDetailView({
             <CardTitle>AI-Generated Explanation</CardTitle>
           </CardHeader>
           <CardContent>
-            {isExplanationLoading ? (
+            {isAiLoading && explanation === null ? (
               <div className="space-y-4"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-full" /></div>
-            ) : anomaly.aiExplanation ? (
-              <p className="text-sm">{anomaly.aiExplanation.explanation}</p>
+            ) : explanation !== null ? (
+              <p className="text-sm">{explanation}</p>
             ) : (
               <p className="text-sm text-muted-foreground italic">AI explanation is being generated or unavailable.</p>
             )}
@@ -167,36 +184,36 @@ export function AnomalyDetailView({
             <CardTitle>Auto-Assembled Evidence Pack</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            {isExplanationLoading ? (
+            {isAiLoading && evidencePack === null ? (
               <div className="space-y-4"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /></div>
-            ) : anomaly.aiExplanation ? (
+            ) : evidencePack !== null ? (
               <>
                 <div className="flex items-center gap-3">
                   <Box className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Supporting Transactions</h4>
-                    <p className="text-muted-foreground">{anomaly.aiExplanation.evidencePack.supportingTransactions}</p>
+                    <p className="text-muted-foreground">{evidencePack.supportingTransactions}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Source Documents</h4>
-                    <p className="text-muted-foreground">{anomaly.aiExplanation.evidencePack.sourceDocuments}</p>
+                    <p className="text-muted-foreground">{evidencePack.sourceDocuments}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <FileCode className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Transformation Logs</h4>
-                    <p className="text-muted-foreground">{anomaly.aiExplanation.evidencePack.transformationLogs}</p>
+                    <p className="text-muted-foreground">{evidencePack.transformationLogs}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Fingerprint className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Immutable Hash</h4>
-                    <p className="font-mono text-xs text-muted-foreground">{anomaly.aiExplanation.evidencePack.hashSignedBundle}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{evidencePack.hashSignedBundle}</p>
                   </div>
                 </div>
               </>
@@ -269,26 +286,26 @@ export function AnomalyDetailView({
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            {isRiskLoading ? (
+            {isAiLoading && riskScore === null ? (
               <Skeleton className="h-32 w-32 rounded-full mx-auto" />
-            ) : anomaly.aiRiskScore ? (
+            ) : riskScore !== null ? (
               <div 
                 className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary transition-all duration-500" 
                 style={{ 
-                  borderColor: `hsla(var(--primary), ${(anomaly.aiRiskScore.riskScore || 0) / 100})` 
+                  borderColor: `hsla(var(--primary), ${riskScore / 100})` 
                 }}
               >
-                <span className="text-4xl font-bold">{Math.round(anomaly.aiRiskScore.riskScore)}</span>
+                <span className="text-4xl font-bold">{Math.round(riskScore)}</span>
               </div>
             ) : (
               <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-muted">
                 <span className="text-4xl font-bold">?</span>
               </div>
             )}
-            {anomaly.aiRiskScore && (
+            {riskScore !== null && (
               <div className="mt-4">
-                <p className="font-semibold">{anomaly.aiRiskScore.reasonCodes}</p>
-                <p className="text-sm text-muted-foreground">Confidence: {Math.round(anomaly.aiRiskScore.confidenceScore)}%</p>
+                <p className="font-semibold">{reasonCodes}</p>
+                <p className="text-sm text-muted-foreground">Confidence: {Math.round(confidenceScore || 0)}%</p>
               </div>
             )}
           </CardContent>
