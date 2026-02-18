@@ -17,7 +17,7 @@ const ExplanationAndEvidencePackInputSchema = z.object({
 export type ExplanationAndEvidencePackInput = z.infer<typeof ExplanationAndEvidencePackInputSchema>;
 
 const ExplanationAndEvidencePackOutputSchema = z.object({
-  explanation: z.string().describe('A human-readable explanation.'),
+  explanation: z.string().catch('No explanation generated.').describe('A human-readable explanation.'),
   evidencePack: z.object({
     supportingTransactions: z.string().optional().catch(''),
     sourceDocuments: z.string().optional().catch(''),
@@ -43,8 +43,9 @@ const prompt = ai.definePrompt({
 
 RULES:
 - Output ONLY valid JSON.
+- DO NOT include any conversational text before or after the JSON.
+- CRITICAL: Escape all newlines in strings as '\\n'. DO NOT use actual newlines within string values.
 - If info is missing, use an empty string. DO NOT omit any fields.
-- The evidencePack MUST contain all keys: supportingTransactions, sourceDocuments, transformationLogs, analystNotes, hashSignedBundle.
 
 Issue Description: {{{issueDescription}}}
 Violated Patterns: {{{violatedPatterns}}}

@@ -36,15 +36,16 @@ const prompt = ai.definePrompt({
 
 RULES:
 - Output ONLY valid JSON.
+- DO NOT include any conversational text.
+- CRITICAL: Escape all newlines in strings as '\\n'. DO NOT use actual newlines within string values.
 - Ensure riskScore and confidenceScore are numbers (0-100).
 - reasonCodes should be a comma-separated string of flags.
-- All fields (riskScore, confidenceScore, reasonCodes, explanation) MUST be present.
 
 Anomaly Description: {{{anomalyDescription}}}
 Risk Parameters: {{{riskParametersJson}}}
 Confidence Interval: {{{confidenceInterval}}}
 
-Return JSON only.`,
+Return ONLY the JSON object.`,
 });
 
 export const aiPoweredRiskScoring = ai.defineFlow(

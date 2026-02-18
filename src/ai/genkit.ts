@@ -36,7 +36,7 @@ ai.defineModel(
               content: rawPrompt,
             },
           ],
-          temperature: 0.2,
+          temperature: 0.1,
           max_tokens: 1000,
         }),
       }
@@ -58,10 +58,16 @@ ai.defineModel(
 
     let text = data.choices[0].message.content;
     
-    // Robust JSON extraction using regex to find the first '{' and last '}'
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      text = jsonMatch[0];
+    // Robust JSON extraction
+    // First, remove potential markdown code block markers
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Find the first '{' and last '}'
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      text = text.substring(firstBrace, lastBrace + 1);
     }
     
     console.log("HF PROCESSED TEXT READY");
