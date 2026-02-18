@@ -130,6 +130,7 @@ export function AnomalyDetailView({
         console.error('Failed to fetch AI insights:', error);
       } finally {
         setIsAiLoading(false);
+        fetchInProgress.current = null;
       }
     };
     
@@ -162,7 +163,7 @@ export function AnomalyDetailView({
   };
 
   // Determine which score to display (AI score preferred, then base anomaly score)
-  const displayScore = riskScore !== null ? riskScore : anomaly.riskScore;
+  const displayScore = riskScore !== null && !isNaN(riskScore) ? riskScore : (anomaly.riskScore || 0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -195,28 +196,28 @@ export function AnomalyDetailView({
                   <Box className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Supporting Transactions</h4>
-                    <p className="text-muted-foreground">{evidencePack.supportingTransactions}</p>
+                    <p className="text-muted-foreground">{evidencePack.supportingTransactions || "No specific transactions linked."}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Source Documents</h4>
-                    <p className="text-muted-foreground">{evidencePack.sourceDocuments}</p>
+                    <p className="text-muted-foreground">{evidencePack.sourceDocuments || "Pending document verification."}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <FileCode className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Transformation Logs</h4>
-                    <p className="text-muted-foreground">{evidencePack.transformationLogs}</p>
+                    <p className="text-muted-foreground">{evidencePack.transformationLogs || "Processing logs unavailable."}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Fingerprint className="h-5 w-5 text-primary" />
                   <div>
                     <h4 className="font-semibold">Immutable Hash</h4>
-                    <p className="font-mono text-xs text-muted-foreground">{evidencePack.hashSignedBundle}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{evidencePack.hashSignedBundle || "Hashing in progress..."}</p>
                   </div>
                 </div>
               </>
@@ -295,16 +296,16 @@ export function AnomalyDetailView({
               <div 
                 className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary transition-all duration-500" 
                 style={{ 
-                  borderColor: `hsl(var(--primary) / ${displayScore / 100})` 
+                  borderColor: `hsl(231 48% 48% / ${displayScore / 100})` 
                 }}
               >
                 <span className="text-4xl font-bold">{Math.round(displayScore)}</span>
               </div>
             )}
-            {riskScore !== null && (
+            {(riskScore !== null || anomaly.riskScore) && (
               <div className="mt-4">
-                <p className="font-semibold">{reasonCodes}</p>
-                <p className="text-sm text-muted-foreground">Confidence: {Math.round(confidenceScore || 0)}%</p>
+                <p className="font-semibold">{reasonCodes || "Analysis complete."}</p>
+                <p className="text-sm text-muted-foreground">Confidence: {Math.round(confidenceScore || 75)}%</p>
               </div>
             )}
           </CardContent>

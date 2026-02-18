@@ -24,7 +24,13 @@ export type AiPoweredRiskScoringOutput = z.infer<typeof AiPoweredRiskScoringOutp
 const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
   model: 'mistral-7b-instruct-v0.3',
-  input: {schema: AiPoweredRiskScoringInputSchema},
+  input: {
+    schema: z.object({
+      anomalyDescription: z.string(),
+      riskParametersJson: z.string(),
+      confidenceInterval: z.string(),
+    }),
+  },
   output: {schema: AiPoweredRiskScoringOutputSchema},
   prompt: `You are a STRICT JSON risk scoring engine.
 
@@ -48,7 +54,7 @@ Return JSON EXACTLY in this format:
 }
 
 Anomaly Description: {{{anomalyDescription}}}
-Risk Parameters: {{{JSON.stringify riskParameters}}}
+Risk Parameters: {{{riskParametersJson}}}
 Confidence Interval: {{{confidenceInterval}}}
 
 Return JSON only.
@@ -62,15 +68,19 @@ export const aiPoweredRiskScoring = ai.defineFlow(
     outputSchema: AiPoweredRiskScoringOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await prompt({
+      anomalyDescription: input.anomalyDescription,
+      riskParametersJson: JSON.stringify(input.riskParameters),
+      confidenceInterval: input.confidenceInterval,
+    });
     const result = output || {};
     console.log("🔥 Risk Flow Final Output:", result);
     
     return {
       riskScore: result.riskScore ?? 0,
       confidenceScore: result.confidenceScore ?? 0,
-      reasonCodes: result.reasonCodes ?? "",
-      explanation: result.explanation ?? ""
+      reasonCodes: result.reasonCodes ?? "N/A",
+      explanation: result.explanation ?? "No explanation provided."
     };
   }
 );
