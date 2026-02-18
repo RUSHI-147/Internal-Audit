@@ -8,9 +8,19 @@ ai.defineModel(
     apiVersion: 'v2',
   },
   async (request) => {
-    console.log("🚀 MISTRAL MODEL CALLED");
     const lastMessage = request.messages[request.messages.length - 1];
-    const promptText = lastMessage.content[0].text;
+    if (!lastMessage || !lastMessage.content[0]) {
+      throw new Error("No prompt provided to Mistral model.");
+    }
+
+    const rawPrompt = lastMessage.content[0].text;
+    
+    // For Mistral-7B-Instruct, wrapping in [INST] tags often improves instruction following
+    const promptText = `[INST] ${rawPrompt} [/INST]`;
+
+    if (!process.env.HF_TOKEN) {
+      throw new Error("HF_TOKEN environment variable is not set.");
+    }
 
     const response = await fetch(
       'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
@@ -37,7 +47,7 @@ ai.defineModel(
     if (!response.ok) {
         const errorText = await response.text();
         console.error("Hugging Face API Error:", errorText);
-        throw new Error(`Hugging Face API request failed with status ${response.status}`);
+        throw new Error(`Hugging Face API request failed with status ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
@@ -47,12 +57,14 @@ ai.defineModel(
         ? data[0].generated_text
         : JSON.stringify(data);
     
-    // Extract JSON object if the model included extra text
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}');
-
-    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      text = text.substring(jsonStart, jsonEnd + 1);
+    // Robust JSON extraction using regex to find the first '{' and last '}'
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      text = jsonMatch[0];
+    } else {
+      // If no JSON object is found, we pass back the text as is, 
+      // but log a warning as it might fail schema validation
+      console.warn("No JSON object found in Mistral response text.");
     }
 
     return {

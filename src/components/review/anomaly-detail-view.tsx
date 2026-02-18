@@ -61,30 +61,34 @@ export function AnomalyDetailView({
   const stableDetailsString = useMemo(() => JSON.stringify(anomaly.details), [anomaly.details]);
 
   useEffect(() => {
+    // Only fetch if data is missing
     if (anomaly.aiExplanation && anomaly.aiRiskScore) return;
 
     const fetchAiData = async () => {
       setIsAiLoading(true);
       try {
-        const [riskResult, explanationResult] = await Promise.all([
-          getRiskScore({
-            anomalyDescription: anomaly.description,
-            riskParameters: anomaly.details.violatedPatterns.join(', '),
-            confidenceInterval: '95%',
-          }),
-          getExplanation({
-            issueDescription: anomaly.description,
-            violatedPatterns: anomaly.details.violatedPatterns.join(', '),
-            supportingEvidence: anomaly.details.supportingEvidence.join(', '),
-            transformationLogs: anomaly.details.transformationLogs.join(', '),
-            sourceDocuments: anomaly.details.sourceDocuments.join(', '),
-          }),
-        ]);
+        // Fetch missing data pieces independently
+        const riskPromise = !anomaly.aiRiskScore ? getRiskScore({
+          anomalyDescription: anomaly.description,
+          riskParameters: anomaly.details.violatedPatterns.join(', '),
+          confidenceInterval: '95%',
+        }) : Promise.resolve(anomaly.aiRiskScore);
 
-        if (riskResult && explanationResult) {
+        const explanationPromise = !anomaly.aiExplanation ? getExplanation({
+          issueDescription: anomaly.description,
+          violatedPatterns: anomaly.details.violatedPatterns.join(', '),
+          supportingEvidence: anomaly.details.supportingEvidence.join(', '),
+          transformationLogs: anomaly.details.transformationLogs.join(', '),
+          sourceDocuments: anomaly.details.sourceDocuments.join(', '),
+        }) : Promise.resolve(anomaly.aiExplanation);
+
+        const [riskResult, explanationResult] = await Promise.all([riskPromise, explanationPromise]);
+
+        // Update context if we received any new data
+        if (riskResult || explanationResult) {
           updateFindingAiData(anomaly.id, {
-            riskScore: riskResult,
-            explanation: explanationResult,
+            riskScore: riskResult || anomaly.aiRiskScore || null,
+            explanation: explanationResult || anomaly.aiExplanation || null,
           });
         }
       } catch (error) {
@@ -253,7 +257,12 @@ export function AnomalyDetailView({
             {isRiskLoading ? (
               <Skeleton className="h-32 w-32 rounded-full mx-auto" />
             ) : anomaly.aiRiskScore ? (
-              <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary" style={{ '--tw-border-opacity': (anomaly.aiRiskScore.riskScore || 0) / 100 } as React.CSSProperties}>
+              <div 
+                className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary transition-all duration-500" 
+                style={{ 
+                  borderColor: `hsla(var(--primary), ${(anomaly.aiRiskScore.riskScore || 0) / 100})` 
+                }}
+              >
                 <span className="text-4xl font-bold">{Math.round(anomaly.aiRiskScore.riskScore)}</span>
               </div>
             ) : (

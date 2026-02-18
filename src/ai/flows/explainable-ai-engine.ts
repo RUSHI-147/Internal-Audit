@@ -38,6 +38,7 @@ const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
   model: 'mistral-7b-instruct-v0.2',
   input: {schema: ExplanationAndEvidencePackInputSchema},
+  output: {schema: ExplanationAndEvidencePackOutputSchema},
   prompt: `You are a STRICT JSON generator for an internal audit system.
 
 IMPORTANT RULES:
@@ -83,27 +84,20 @@ const generateExplanationAndEvidencePackFlow = ai.defineFlow(
     outputSchema: ExplanationAndEvidencePackOutputSchema,
   },
   async (input) => {
-    const response = await prompt(input);
-  
-    if (!response?.text) {
-      throw new Error("Explanation flow returned empty response");
+    const { output } = await prompt(input);
+    if (!output) {
+      throw new Error("AI failed to generate a valid explanation output.");
     }
-  
-    try {
-      const result = JSON.parse(response.text);
-      return {
-        explanation: result.explanation || "No explanation provided by AI.",
-        evidencePack: {
-          supportingTransactions: result.evidencePack?.supportingTransactions || "No supporting transactions found.",
-          sourceDocuments: result.evidencePack?.sourceDocuments || "No source documents identified.",
-          transformationLogs: result.evidencePack?.transformationLogs || "No transformation logs available.",
-          analystNotes: result.evidencePack?.analystNotes || "",
-          hashSignedBundle: result.evidencePack?.hashSignedBundle || "Pending signing...",
-        },
-      };
-    } catch (e) {
-      console.error("Failed to parse AI explanation JSON:", response.text);
-      throw new Error("AI returned invalid JSON structure.");
-    }
+    
+    return {
+      explanation: output.explanation || "No explanation provided by AI.",
+      evidencePack: {
+        supportingTransactions: output.evidencePack?.supportingTransactions || "No supporting transactions found.",
+        sourceDocuments: output.evidencePack?.sourceDocuments || "No source documents identified.",
+        transformationLogs: output.evidencePack?.transformationLogs || "No transformation logs available.",
+        analystNotes: output.evidencePack?.analystNotes || "",
+        hashSignedBundle: output.evidencePack?.hashSignedBundle || "Pending signing...",
+      },
+    };
   }  
 );

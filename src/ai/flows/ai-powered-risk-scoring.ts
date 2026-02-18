@@ -30,6 +30,7 @@ const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
   model: 'mistral-7b-instruct-v0.2',
   input: {schema: AiPoweredRiskScoringInputSchema},
+  output: {schema: AiPoweredRiskScoringOutputSchema},
   prompt: `You are a STRICT JSON risk scoring engine.
 
 IMPORTANT RULES:
@@ -66,23 +67,16 @@ const aiPoweredRiskScoringFlow = ai.defineFlow(
     outputSchema: AiPoweredRiskScoringOutputSchema,
   },
   async (input) => {
-    const response = await prompt(input);
-  
-    if (!response?.text) {
-      throw new Error("Risk scoring flow returned empty response");
+    const { output } = await prompt(input);
+    if (!output) {
+      throw new Error("AI failed to generate a valid risk score output.");
     }
-  
-    try {
-      const result = JSON.parse(response.text);
-      return {
-        riskScore: Number(result.riskScore) || 0,
-        confidenceScore: Number(result.confidenceScore) || 0,
-        reasonCodes: result.reasonCodes || "No reason codes provided.",
-        explanation: result.explanation || "No explanation provided.",
-      };
-    } catch (e) {
-      console.error("Failed to parse Risk Score AI JSON:", response.text);
-      throw new Error("AI returned invalid risk score JSON.");
-    }
+
+    return {
+      riskScore: Number(output.riskScore) || 0,
+      confidenceScore: Number(output.confidenceScore) || 0,
+      reasonCodes: output.reasonCodes || "No reason codes provided.",
+      explanation: output.explanation || "No explanation provided.",
+    };
   }  
 );
