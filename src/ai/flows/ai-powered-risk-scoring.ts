@@ -28,7 +28,7 @@ export async function aiPoweredRiskScoring(input: AiPoweredRiskScoringInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'aiPoweredRiskScoringPrompt',
-  model: 'huggingface-llama3',
+  model: 'mistral-7b-instruct-v0.2',
   input: {schema: AiPoweredRiskScoringInputSchema},
   prompt: `You are a STRICT JSON risk scoring engine.
 

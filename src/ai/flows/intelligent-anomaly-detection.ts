@@ -14,7 +14,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { callLLM } from "../llm-client";
 
 const IntelligentAnomalyDetectionInputSchema = z.object({
   journalEntries: z.array(
@@ -86,7 +85,7 @@ export type IntelligentAnomalyDetectionOutput = z.infer<typeof IntelligentAnomal
 
 const anomalyDetectionPrompt = ai.definePrompt({
   name: 'anomalyDetectionPrompt',
-  model: 'huggingface-llama3',
+  model: 'mistral-7b-instruct-v0.2',
   input: { schema: IntelligentAnomalyDetectionInputSchema },
   output: { schema: IntelligentAnomalyDetectionOutputSchema },
   prompt: `You are an AI Internal Audit Copilot responsible for detecting anomalies in financial data.

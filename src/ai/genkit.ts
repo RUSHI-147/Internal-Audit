@@ -4,13 +4,13 @@ export const ai = genkit({});
 
 ai.defineModel(
   {
-    name: 'huggingface-llama3',
+    name: 'mistral-7b-instruct-v0.2',
     apiVersion: 'v2',
   },
   async (request) => {
-    console.log("🚀 HF MODEL CALLED");
+    console.log("🚀 MISTRAL MODEL CALLED");
     const lastMessage = request.messages[request.messages.length - 1];
-    const prompt = lastMessage.content[0].text;
+    const promptText = lastMessage.content[0].text;
 
     const response = await fetch(
       'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
@@ -21,7 +21,7 @@ ai.defineModel(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: prompt,
+          inputs: promptText,
           parameters: {
             temperature: 0.1,
             max_new_tokens: 1000,

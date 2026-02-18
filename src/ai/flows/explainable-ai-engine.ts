@@ -36,7 +36,7 @@ export async function generateExplanationAndEvidencePack(input: ExplanationAndEv
 
 const prompt = ai.definePrompt({
   name: 'explanationAndEvidencePackPrompt',
-  model: 'huggingface-llama3',
+  model: 'mistral-7b-instruct-v0.2',
   input: {schema: ExplanationAndEvidencePackInputSchema},
   prompt: `You are a STRICT JSON generator for an internal audit system.
 
@@ -46,6 +46,7 @@ IMPORTANT RULES:
 - Do NOT include backticks.
 - Do NOT include explanations outside JSON.
 - Do NOT include comments.
+- Do NOT add any text before or after the JSON object.
 - Ensure all fields are present.
 - If information is missing, return empty strings.
 
