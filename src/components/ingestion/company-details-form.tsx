@@ -193,12 +193,15 @@ export function CompanyDetailsForm({ onSubmit }: CompanyDetailsFormProps) {
                     <FormLabel>Employee Count</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         placeholder="e.g., 50"
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value, 10) || 0)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          field.onChange(parseInt(value, 10) || 0);
+                        }}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
