@@ -92,7 +92,6 @@ export function AnomalyDetailView({
     }
 
     const fetchAiData = async () => {
-      console.log("🚀 fetchAiData CALLED for anomaly:", anomaly.id);
       fetchInProgress.current = anomaly.id;
       setIsAiLoading(true);
       
@@ -162,8 +161,10 @@ export function AnomalyDetailView({
     }, 500);
   };
 
-  // Determine which score to display (AI score preferred, then base anomaly score)
-  const displayScore = riskScore !== null && !isNaN(riskScore) ? riskScore : (anomaly.riskScore || 0);
+  // Determine which score to display (AI score preferred, then stored AI score, then base anomaly score)
+  const displayScore = Number(riskScore ?? anomaly.aiRiskScore?.riskScore ?? anomaly.riskScore ?? 0);
+  const displayConfidence = Number(confidenceScore ?? anomaly.aiRiskScore?.confidenceScore ?? 75);
+  const displayReasonCodes = reasonCodes || anomaly.aiRiskScore?.reasonCodes || "Analysis complete.";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -176,7 +177,7 @@ export function AnomalyDetailView({
             {isAiLoading && explanation === null ? (
               <div className="space-y-4"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-full" /></div>
             ) : explanation !== null ? (
-              <p className="text-sm">{explanation}</p>
+              <p className="text-sm leading-relaxed">{explanation}</p>
             ) : (
               <p className="text-sm text-muted-foreground italic">AI explanation is being generated or unavailable.</p>
             )}
@@ -289,32 +290,31 @@ export function AnomalyDetailView({
               AI Risk Score
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-center">
+          <CardContent className="text-center flex flex-col items-center justify-center">
             {isAiLoading && riskScore === null ? (
               <Skeleton className="h-32 w-32 rounded-full mx-auto" />
             ) : (
               <div 
-                className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 border-primary transition-all duration-500" 
+                className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 transition-all duration-500" 
                 style={{ 
-                  borderColor: `hsl(231 48% 48% / ${displayScore / 100})` 
+                  borderColor: `rgba(74, 85, 178, ${Math.max(0.1, displayScore / 100)})`,
+                  borderStyle: 'solid'
                 }}
               >
                 <span className="text-4xl font-bold">{Math.round(displayScore)}</span>
               </div>
             )}
-            {(riskScore !== null || anomaly.riskScore) && (
-              <div className="mt-4">
-                <p className="font-semibold">{reasonCodes || "Analysis complete."}</p>
-                <p className="text-sm text-muted-foreground">Confidence: {Math.round(confidenceScore || 75)}%</p>
-              </div>
-            )}
+            <div className="mt-4 w-full">
+              <p className="font-semibold text-sm line-clamp-2">{displayReasonCodes}</p>
+              <p className="text-xs text-muted-foreground mt-1">Confidence: {Math.round(displayConfidence)}%</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Anomaly Summary</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-medium">{anomaly.details.amount?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Vendor:</span><span className="font-medium">{anomaly.details.vendor}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Vendor:</span><span className="font-medium">{anomaly.details.vendor || "N/A"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Date:</span><span className="font-medium">{anomaly.date}</span></div>
           </CardContent>
         </Card>
