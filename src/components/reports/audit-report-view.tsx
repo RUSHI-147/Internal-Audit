@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useAudit } from '@/contexts/AuditContext';
 import { Button } from '@/components/ui/button';
 import { mockCurrentUser } from '@/lib/data';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, FileText, File as FileIcon } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,11 +14,20 @@ import {
   TableRow,
 } from '../ui/table';
 import { Badge } from '../ui/badge';
+import { Label } from '../ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { internalAuditTemplateV1 } from '@/lib/audit_template';
 import { accounting_standards } from '@/lib/accounting_standards';
 import { Anomaly, UploadedDoc } from '@/lib/types';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { exportAsPDF, exportAsWord } from './report-export';
 
 type AuditReportViewProps = {
   template: typeof internalAuditTemplateV1;
@@ -73,7 +83,7 @@ const ReportSection = ({
                   non-compliance.
                 </p>
                 <p className="mt-1">
-                  <strong>Auditor's Conclusion:</strong> {f.auditorComment}
+                  <strong>Auditor's Conclusion:</strong> {f.auditorComment || "Analysis verified."}
                 </p>
                 <p className="mt-1">
                   <strong>Recommendation:</strong> We recommend implementing a
@@ -269,6 +279,7 @@ const ReportSection = ({
 export function AuditReportView({ template, standards }: AuditReportViewProps) {
   const { findings, uploadedDocs } = useAudit();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'docx'>('pdf');
   const { toast } = useToast();
 
   const confirmedFindings = findings.filter((f) => f.status === 'Confirmed');
@@ -278,6 +289,7 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
     name: 'Example Corp Pvt. Ltd.',
     type: 'Private Limited Company',
     auditPeriod: 'FY 2023-2024',
+    auditorName: mockCurrentUser.name
   };
 
   const reportDate = new Date().toLocaleDateString('en-GB', {
@@ -294,42 +306,40 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
 
   const handleDownload = async () => {
     setIsGenerating(true);
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `internal-audit-report-${dateStr}.${exportFormat}`;
+
     toast({
       title: "Generating Report",
-      description: "Preparing your audit report for download...",
+      description: `Preparing your ${exportFormat.toUpperCase()} report for download...`,
     });
 
     try {
-      // Dynamic import to avoid SSR issues and compilation hangs
-      // @ts-ignore
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default || html2pdfModule;
-      
-      const element = document.getElementById('report-content');
-      if (!element) throw new Error("Report content element not found.");
-
-      const opt = {
-        margin: 10,
-        filename: `Internal_Audit_Report_${companyDetails.name.replace(/\s+/g, '_')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-
-      // Generate and save the PDF
-      await html2pdf().set(opt).from(element).save();
+      if (exportFormat === 'pdf') {
+        await exportAsPDF('report-content', filename);
+      } else {
+        await exportAsWord({
+          template,
+          standards,
+          findings,
+          uploadedDocs,
+          companyDetails,
+          reportDate,
+          overallRisk,
+          filename
+        });
+      }
       
       toast({
         title: "Download Complete",
         description: "Your audit report has been saved successfully.",
       });
     } catch (error) {
-      console.error("PDF Generation Error:", error);
+      console.error("Export Error:", error);
       toast({
         variant: "destructive",
         title: "Export Failed",
-        description: "Could not generate the PDF. Please try again or use the browser print option.",
+        description: `Could not generate the ${exportFormat.toUpperCase()}. Please try again.`,
       });
     } finally {
       setIsGenerating(false);
@@ -338,18 +348,52 @@ export function AuditReportView({ template, standards }: AuditReportViewProps) {
 
   return (
     <div className="bg-background">
-      <div className="flex justify-between items-center mb-8 print-hide">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 print-hide">
         <h1 className="text-2xl font-bold font-headline">
           Internal Audit Report Preview
         </h1>
-        <Button onClick={handleDownload} disabled={isGenerating}>
-          {isGenerating ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          {isGenerating ? "Preparing PDF..." : "Download as PDF"}
-        </Button>
+        
+        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="export-format" className="text-sm font-medium">Download as:</Label>
+            <Select 
+              value={exportFormat} 
+              onValueChange={(val: 'pdf' | 'docx') => setExportFormat(val)}
+            >
+              <SelectTrigger id="export-format" className="w-[140px] h-9">
+                <SelectValue placeholder="Format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pdf">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-red-500" />
+                    <span>PDF</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="docx">
+                  <div className="flex items-center gap-2">
+                    <FileIcon className="h-4 w-4 text-blue-500" />
+                    <span>Word (.docx)</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button 
+            onClick={handleDownload} 
+            disabled={isGenerating}
+            size="sm"
+            className="h-9"
+          >
+            {isGenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isGenerating ? "Processing..." : "Download Report"}
+          </Button>
+        </div>
       </div>
 
       <div id="report-content" className="bg-white p-8 md:p-12 rounded-lg shadow-lg print-container max-w-[210mm] mx-auto overflow-hidden">
