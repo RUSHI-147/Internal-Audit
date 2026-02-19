@@ -29,6 +29,51 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { explainableAiEngine } from '@/ai/flows/explainable-ai-engine';
 import { aiPoweredRiskScoring } from '@/ai/flows/ai-powered-risk-scoring';
+import { cn } from '@/lib/utils';
+
+function RiskScoreRing({ score }: { score: number }) {
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  
+  const getColorClass = (s: number) => {
+    if (s > 80) return 'text-destructive';
+    if (s > 60) return 'text-orange-500';
+    return 'text-primary';
+  };
+
+  return (
+    <div className="relative flex items-center justify-center h-32 w-32">
+      <svg className="h-full w-full -rotate-90">
+        <circle
+          cx="64"
+          cy="64"
+          r={radius}
+          fill="transparent"
+          stroke="currentColor"
+          strokeWidth="8"
+          className="text-muted/10"
+        />
+        <circle
+          cx="64"
+          cy="64"
+          r={radius}
+          fill="transparent"
+          stroke="currentColor"
+          strokeWidth="8"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className={cn("transition-all duration-1000 ease-out", getColorClass(score))}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-bold">{Math.round(score)}</span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Risk</span>
+      </div>
+    </div>
+  );
+}
 
 export function AnomalyDetailView({
   anomaly: anomalyProp,
@@ -161,9 +206,10 @@ export function AnomalyDetailView({
     }, 500);
   };
 
-  // Determine which score to display (AI score preferred, then stored AI score, then base anomaly score)
-  const displayScore = Number(riskScore ?? anomaly.aiRiskScore?.riskScore ?? anomaly.riskScore ?? 0);
-  const displayConfidence = Number(confidenceScore ?? anomaly.aiRiskScore?.confidenceScore ?? 75);
+  // Determine which values to display (AI score preferred, then stored AI score, then base anomaly score)
+  // Use || fallback to skip 0/null values from failed AI outputs
+  const displayScore = Number(riskScore || anomaly.aiRiskScore?.riskScore || anomaly.riskScore || 0);
+  const displayConfidence = Number(confidenceScore || anomaly.aiRiskScore?.confidenceScore || 75);
   const displayReasonCodes = reasonCodes || anomaly.aiRiskScore?.reasonCodes || "Analysis complete.";
 
   return (
@@ -175,7 +221,11 @@ export function AnomalyDetailView({
           </CardHeader>
           <CardContent>
             {isAiLoading && explanation === null ? (
-              <div className="space-y-4"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-full" /></div>
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
             ) : explanation !== null ? (
               <p className="text-sm leading-relaxed">{explanation}</p>
             ) : (
@@ -190,7 +240,11 @@ export function AnomalyDetailView({
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {isAiLoading && evidencePack === null ? (
-              <div className="space-y-4"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /></div>
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
             ) : evidencePack !== null ? (
               <>
                 <div className="flex items-center gap-3">
@@ -290,32 +344,44 @@ export function AnomalyDetailView({
               AI Risk Score
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-center flex flex-col items-center justify-center">
-            {isAiLoading && riskScore === null ? (
-              <Skeleton className="h-32 w-32 rounded-full mx-auto" />
-            ) : (
-              <div 
-                className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-8 transition-all duration-500" 
-                style={{ 
-                  borderColor: `rgba(74, 85, 178, ${Math.max(0.1, displayScore / 100)})`,
-                  borderStyle: 'solid'
-                }}
-              >
-                <span className="text-4xl font-bold">{Math.round(displayScore)}</span>
+          <CardContent className="flex flex-col items-center justify-center pt-4">
+            <div className="relative">
+              {isAiLoading && riskScore === null && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50 rounded-full">
+                  <Loader className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              <RiskScoreRing score={displayScore} />
+            </div>
+            
+            <div className="mt-6 w-full text-center">
+              <div className="inline-flex items-center justify-center px-2 py-1 rounded-md bg-muted text-xs font-mono mb-2">
+                Confidence: {Math.round(displayConfidence)}%
               </div>
-            )}
-            <div className="mt-4 w-full">
-              <p className="font-semibold text-sm line-clamp-2">{displayReasonCodes}</p>
-              <p className="text-xs text-muted-foreground mt-1">Confidence: {Math.round(displayConfidence)}%</p>
+              <p className="font-semibold text-sm leading-tight text-balance">{displayReasonCodes}</p>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader><CardTitle>Anomaly Summary</CardTitle></CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-medium">{anomaly.details.amount?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Vendor:</span><span className="font-medium">{anomaly.details.vendor || "N/A"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Date:</span><span className="font-medium">{anomaly.date}</span></div>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Amount:</span>
+              <span className="font-bold">{anomaly.details.amount?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Vendor:</span>
+              <span className="font-medium">{anomaly.details.vendor || "N/A"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Date:</span>
+              <span className="font-medium">{anomaly.date}</span>
+            </div>
+            <div className="pt-2 border-t mt-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Transaction ID</span>
+              <p className="font-mono text-xs">{anomaly.details.transactionId || "N/A"}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
